@@ -1,16 +1,11 @@
 # OllamaMeter
 
 <p align="left">
-  <img src="https://img.shields.io/badge/python-3.10+-blue.svg?style=flat-square" alt="Python 3.14+">
+  <img src="https://img.shields.io/badge/python-3.14+-blue.svg?style=flat-square" alt="Python 3.14+">
   <img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="MIT License">
 </p>
 
 Benchmark and compare Ollama models across local and cloud endpoints with rich, sortable tables.
-
-<p align="left">
-  <img src="assets/cloud.png" width="100%" alt="Cloud models">
-<img src="assets/local.png" width="100%" alt="Local models">
-</p>
 
 ## Features
 
@@ -21,6 +16,23 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 - 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
 - 🎨 **Beautiful CLI** powered by `rich` + `InquirerPy`
+
+## Preview
+
+<details name="screenshots" open>
+<summary><strong>Cloud model listing</strong> — <code>ometer --cloud</code></summary>
+<img src="assets/cloud.png" alt="Cloud models">
+</details>
+
+<details name="screenshots">
+<summary><strong>Local model listing</strong> — <code>ometer --local</code></summary>
+<img src="assets/local.png" alt="Local models">
+</details>
+
+<details name="screenshots">
+<summary><strong>Benchmark with per-run breakdown</strong> — <code>ometer --local --ttf --tps --verbose --runs 2 --parallel 1</code></summary>
+<img src="assets/local-ttf-tps-verbose-runs-parallel.png" alt="Benchmark with breakdown">
+</details>
 
 ## Installation
 
