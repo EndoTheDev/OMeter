@@ -1,0 +1,120 @@
+# API Reference
+
+This document covers the Ollama API endpoints used by OllamaMeter and the internal functions that interact with them.
+
+## Ollama API Endpoints
+
+OllamaMeter communicates with Ollama instances over HTTP using `httpx.AsyncClient`.
+
+### GET /api/tags
+
+Lists available models on an endpoint.
+
+- **Used by**: `fetch_tags()` (`src/ometer/api.py:35-39`)
+- **Response**: `{ "models": [{ "name": "...", "modified_at": "...", "details": { ... } }] }`
+- **Purpose**: Discover which models are available on the local or cloud instance.
+
+### POST /api/show
+
+Retrieves detailed metadata for a specific model.
+
+- **Used by**: `fetch_model_show()` (`src/ometer/api.py:42-51`)
+- **Request body**: `{ "model": "<model_name>" }`
+- **Response**: `{ "details": { ... }, "model_info": { ... }, "capabilities": ["chat", "embedding", ...] }`
+- **Purpose**: Extract parameter size, quantization level, context length, and capabilities.
+
+### POST /api/chat (streamed)
+
+Streams chat completions for benchmarking LLMs.
+
+- **Used by**: `benchmark_chat_single_run()` (`src/ometer/api.py:58-132`)
+- **Request body**: `{ "model": "...", "messages": [{"role": "user", "content": "..."}], "stream": true }`
+- **Auth**: Bearer token in `Authorization` header for cloud endpoints.
+- **Timeout**: 300 seconds.
+- **Response**: Newline-delimited JSON chunks. The final `done: true` chunk contains `eval_count` and `eval_duration`.
+
+### POST /api/embed
+
+Benchmarks embedding models.
+
+- **Used by**: `benchmark_embed_single_run()` (`src/ometer/api.py:135-169`)
+- **Request body**: `{ "model": "...", "input": "..." }`
+- **Response**: `{ "prompt_eval_count": ..., "total_duration": ... }`
+- **Timeout**: 300 seconds.
+- **Note**: Only used for embedding models on **local** endpoints. Cloud embedding is not supported.
+
+## Internal Functions
+
+### api.py
+
+| Function                                                                              | Lines   | Returns           | Description                                      |
+| ------------------------------------------------------------------------------------- | ------- | ----------------- | ------------------------------------------------ |
+| `fetch_tags(client, base_url)`                                                        | 35-39   | `list[dict]`      | Fetches model list from `/api/tags`              |
+| `fetch_model_show(client, base_url, model_name)`                                      | 42-51   | `dict`            | Fetches model metadata from `/api/show`          |
+| `is_embedding_model(show_data)`                                                       | 54-55   | `bool`            | Checks if `"embedding"` is in capabilities       |
+| `benchmark_chat_single_run(client, base_url, model_name, prompt, headers, show_data)` | 58-132  | `dict`            | Single benchmark run via `/api/chat`             |
+| `benchmark_embed_single_run(client, base_url, model_name, prompt, headers)`           | 135-169 | `dict`            | Single benchmark run via `/api/embed`            |
+| `benchmark_model(client, config, base_url, model_name, show_data, headers)`           | 172-213 | `BenchmarkResult` | Runs all prompts, averages results               |
+| `sort_by_modified(models)`                                                            | 22-32   | `list[dict]`      | Sorts model list by `modified_at` (newest first) |
+
+### config.py
+
+| Function/Class                    | Lines | Description                                               |
+| --------------------------------- | ----- | --------------------------------------------------------- |
+| `_load_env()`                     | 15-23 | Searches for `.env` files in 3 locations                  |
+| `Config`                          | 25-39 | Settings class with clamped `num_runs` and `num_parallel` |
+| `Config.from_env(runs, parallel)` | 41-67 | Factory: loads env, applies CLI overrides                 |
+
+### cli.py
+
+| Function                                                        | Lines   | Description                                                |
+| --------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `main(mode, show_ttf, show_tps, verbose, target_model, config)` | 17-110  | Async main: fetches models, dispatches to display          |
+| `build_parser(prog)`                                            | 113-145 | Builds `argparse.ArgumentParser` with all flags            |
+| `resolve_mode(args, is_tty, prompt_fn)`                         | 148-166 | Determines local/cloud/both from flags or interactive menu |
+| `main_entrypoint()`                                             | 169-201 | Synchronous entry point registered in `pyproject.toml`     |
+
+### display.py
+
+| Function                                                    | Lines   | Description                                             |
+| ----------------------------------------------------------- | ------- | ------------------------------------------------------- |
+| `extract_context_length(model_info)`                        | 20-24   | Finds `*.context_length` key in model info              |
+| `format_size(parameter_size, model_name)`                   | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)      |
+| `format_capabilities(caps)`                                 | 52-53   | Joins sorted capabilities list                          |
+| `format_float_or_na(val)`                                   | 56-59   | Formats float or returns `"n/a"`                        |
+| `build_table(title, show_ttf, show_tps, verbose, num_runs)` | 62-81   | Creates `rich.Table` with appropriate columns           |
+| `_thresholds(values)`                                       | 112-119 | Computes 33rd/66th percentile boundaries                |
+| `_color(cell, thresholds, lower_is_better)`                 | 122-145 | Applies green/orange/red styling                        |
+| `_build_colored_table(...)`                                 | 148-182 | Rebuilds table with threshold-based coloring            |
+| `process_single_model(...)`                                 | 185-241 | Merges tag + show data + benchmark into a row           |
+| `_benchmark_model_task(...)`                                | 244-276 | Async task: fetch show data, run benchmark, produce row |
+| `stream_table(...)`                                         | 279-369 | Orchestrates live table rendering with `asyncio.wait`   |
+
+## BenchmarkResult Dataclass
+
+```python
+@dataclass
+class BenchmarkResult:
+    ttf: float | None      # Average time-to-first-token
+    tps: float | None      # Average tokens-per-second
+    error: str | None       # First error, if any
+    runs: list[dict]       # Per-run {"prompt", "ttf", "tps", "error"}
+```
+
+Defined at `src/ometer/api.py:14-19`.
+
+## Table Column Layout
+
+The order and visibility of columns depends on which flags are active:
+
+| Column       | Always | With `--ttf` | With `--tps` | With `--verbose` |
+| ------------ | ------ | :----------: | :----------: | :--------------: |
+| Model        | Yes    |              |              |                  |
+| Size         | Yes    |              |              |                  |
+| Context      | Yes    |              |              |                  |
+| Quant        | Yes    |              |              |                  |
+| Capabilities | Yes    |              |              |                  |
+| TTFT1…TTFTn  |        |     Yes      |              |       Yes        |
+| TTFT         |        |     Yes      |              |                  |
+| TPS1…TPSn    |        |              |     Yes      |       Yes        |
+| TPS          |        |              |     Yes      |                  |

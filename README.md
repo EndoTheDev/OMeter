@@ -172,6 +172,31 @@ EOF
 
 The cloud API key is **only needed for benchmarking cloud models**.
 
+## Architecture
+
+OllamaMeter has four modules that handle distinct concerns:
+
+```txt
+User ──► cli.py ──► config.py ──► api.py ──► display.py
+          │             │            │            │
+     arg parsing    .env load    HTTP calls    rich tables
+     mode resolve   validate     benchmark     color thresholds
+     interactive     clamp       stream        live updates
+```
+
+- **cli.py** — Entry point, argument parsing, interactive model selection
+- **config.py** — Hierarchical `.env` loading, settings validation and clamping
+- **api.py** — HTTP communication with Ollama, TTF/TPS measurement
+- **display.py** — Rich terminal UI, live table updates, percentile-based color coding
+
+For detailed documentation, see the [docs](docs/) directory:
+
+- [Architecture](docs/architecture.md) — Module decomposition, request lifecycle, data entities
+- [Benchmarking Pipeline](docs/benchmarking.md) — TTF/TPS methodology, concurrency, color thresholds
+- [Configuration](docs/configuration.md) — Environment variables, CLI flags, loading order
+- [API Reference](docs/api-reference.md) — Ollama endpoints, function reference, BenchmarkResult
+- [Development](docs/development.md) — Dev setup, running tests, project structure, conventions
+
 ## CLI Commands
 
 Both `ometer` and `ollamameter` work identically:
