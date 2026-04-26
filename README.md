@@ -12,7 +12,8 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 - 📋 **List models** from local and cloud Ollama endpoints
 - 📊 **Rich tables** with sorting by modification date (newest first)
 - ⏱️ **Benchmark** time-to-first-token (TTFT) and tokens-per-second (TPS)
-- 🔍 **Single-model mode** for targeted benchmarking
+- 🔍 **Model filtering** by exact name or family match (e.g. `llama3` matches `llama3:latest`)
+- 📤 **Export results** to JSON or CSV (stdout or file)
 - 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
 - 🎨 **Beautiful CLI** powered by `rich` + `InquirerPy`
@@ -78,6 +79,12 @@ pip install ometer
 
 ## Usage
 
+Show the version:
+
+```bash
+ometer --version
+```
+
 List models with an **interactive menu**:
 
 ```bash
@@ -127,16 +134,25 @@ ometer --cloud --ttft --tps --verbose --runs 1
 ometer --cloud --ttft --tps --verbose --runs 2
 ```
 
-Filter to a **specific model** (searches both local and cloud if no endpoint flag is given):
+Filter to **specific models** (exact name or family match, accepts multiple names):
 
 ```bash
-ometer --model glm-5.1 --ttft --tps
+ometer --model llama3 --ttft --tps
+ometer --local --model llama3.2:3b llama3.3:8b --ttft --tps
 ```
 
-Combined with an endpoint flag:
+Export results as **JSON** (to stdout or a file):
 
 ```bash
-ometer --cloud --model glm-5.1 --ttft --tps
+ometer --cloud --ttft --tps --json
+ometer --cloud --ttft --tps --json results.json
+```
+
+Export results as **CSV** (to stdout or a file):
+
+```bash
+ometer --local --ttft --tps --csv
+ometer --local --ttft --tps --csv results.csv
 ```
 
 See all options:
@@ -172,22 +188,25 @@ EOF
 
 The cloud API key is **only needed for benchmarking cloud models**.
 
-## Architecture
-
-OllamaMeter has four modules that handle distinct concerns:
+OllamaMeter has five modules that handle distinct concerns:
 
 ```txt
 User ──► cli.py ──► config.py ──► api.py ──► display.py
-          │             │            │            │
-     arg parsing    .env load    HTTP calls    rich tables
-     mode resolve   validate     benchmark     color thresholds
-     interactive     clamp       stream        live updates
+           │             │            │            │
+      arg parsing    .env load    HTTP calls    rich tables
+      mode resolve   validate     benchmark     color thresholds
+      interactive     clamp       stream        live updates
+      export             │            │            │
+                         │            │        export.py
+                         │            │            │
+                         │            │       JSON/CSV output
 ```
 
-- **cli.py** — Entry point, argument parsing, interactive model selection
+- **cli.py** — Entry point, argument parsing, interactive model selection, export dispatch
 - **config.py** — Hierarchical `.env` loading, settings validation and clamping
 - **api.py** — HTTP communication with Ollama, TTFT/TPS measurement
 - **display.py** — Rich terminal UI, live table updates, percentile-based color coding
+- **export.py** — JSON/CSV export formatting and file output
 
 For detailed documentation, see the [docs](docs/) directory:
 

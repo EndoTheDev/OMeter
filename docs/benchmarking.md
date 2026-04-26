@@ -76,7 +76,7 @@ The `Config.num_runs` value (clamped 1–3) controls how many prompts are used. 
 
 ## Concurrency Model
 
-Parallel benchmarking is controlled by `asyncio.Semaphore` in `display.py:292`:
+Parallel benchmarking is controlled by `asyncio.Semaphore` in `display.py`:
 
 ```txt
 semaphore = asyncio.Semaphore(config.num_parallel)
@@ -85,6 +85,17 @@ semaphore = asyncio.Semaphore(config.num_parallel)
 - `OLLAMAMETER_PARALLEL` / `--parallel` sets concurrency (default 1, max 10).
 - The semaphore gates both `/api/show` requests and benchmark runs.
 - `asyncio.wait(FIRST_COMPLETED)` is used to update the live table as each model finishes.
+- The shared async collection logic is extracted into `_collect_pending()`, which awaits the next completed task and stores results into dicts.
+
+## Export Mode
+
+When `--json` or `--csv` is used, `stream_table()` runs in export-only mode (`export_only=True`):
+
+- The rich `Live` table is skipped — no table is rendered to the terminal.
+- `process_single_model()` skips building display rows when `export_only=True`, returning an empty list for the display row and only populating the `ExportRow`.
+- If benchmarks are active (`--ttft` or `--tps`), a `console.status` spinner shows progress: `"Benchmarking 2/5 model(s)…"`.
+- On completion, results are written to stdout or a file via `export_results()`.
+- For list-only mode (no benchmarks), only the existing `"Fetching details for N model(s)…"` status is shown.
 
 ## Color Thresholds
 

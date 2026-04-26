@@ -9,9 +9,11 @@ from typing import Callable
 import httpx
 from InquirerPy.prompts.list import ListPrompt
 
+from ometer import __version__
 from ometer.api import sort_by_modified, fetch_tags
 from ometer.config import Config
 from ometer.display import console, stream_table
+from ometer.export import ExportRow, export_results
 
 
 async def main(
@@ -19,9 +21,12 @@ async def main(
     show_ttft: bool,
     show_tps: bool,
     verbose: bool,
-    target_model: str | None,
+    target_models: list[str] | None,
     config: Config,
+    export_fmt: str | None = None,
+    export_path: str | None = None,
 ) -> None:
+    export_only = export_fmt is not None
     chat_headers: dict[str, str] | None = None
     if config.cloud_api_key:
         chat_headers = {"Authorization": f"Bearer {config.cloud_api_key}"}
@@ -57,9 +62,17 @@ async def main(
             except Exception as e:
                 console.print(f"[red]✗ Failed to fetch cloud models: {e}[/red]")
 
-        if target_model:
-            local_models = [m for m in local_models if m["name"] == target_model]
-            cloud_models = [m for m in cloud_models if m["name"] == target_model]
+        if target_models:
+            local_models = [
+                m
+                for m in local_models
+                if any(match_model(m["name"], t) for t in target_models)
+            ]
+            cloud_models = [
+                m
+                for m in cloud_models
+                if any(match_model(m["name"], t) for t in target_models)
+            ]
 
             searched: list[str] = []
             if mode in (None, "local"):
@@ -68,15 +81,17 @@ async def main(
                 searched.append("cloud")
             if not local_models and not cloud_models:
                 console.print(
-                    f"[red]✗ Model '{target_model}' not found in {', '.join(searched)}.[/red]"
+                    f"[red]✗ No model matching '{', '.join(target_models)}' found in {', '.join(searched)}.[/red]"
                 )
                 sys.exit(1)
 
+        all_exports: list[ExportRow] = []
+
         if local_models:
             local_title = "Ollama Local Models"
-            if target_model:
-                local_title += f" — {target_model}"
-            await stream_table(
+            if target_models:
+                local_title += f" — {', '.join(target_models)}"
+            local_exports = await stream_table(
                 client,
                 config,
                 config.local_base_url,
@@ -85,17 +100,19 @@ async def main(
                 show_ttft,
                 show_tps,
                 verbose,
+                export_only=export_only,
             )
-            if mode is None:
+            all_exports.extend(local_exports)
+            if mode is None and not export_only:
                 console.print()
         elif mode in (None, "local"):
             console.print("[dim]No local models found.[/dim]")
 
         if cloud_models:
             cloud_title = "Ollama Cloud Available Models"
-            if target_model:
-                cloud_title += f" — {target_model}"
-            await stream_table(
+            if target_models:
+                cloud_title += f" — {', '.join(target_models)}"
+            cloud_exports = await stream_table(
                 client,
                 config,
                 config.cloud_base_url,
@@ -105,9 +122,34 @@ async def main(
                 show_tps,
                 verbose,
                 chat_headers,
+                export_only=export_only,
             )
+            all_exports.extend(cloud_exports)
         elif mode in (None, "cloud"):
             console.print("[dim]No cloud models found.[/dim]")
+
+        if export_fmt and all_exports:
+            export_results(
+                all_exports,
+                export_fmt,
+                export_path,
+                config.num_runs,
+                show_ttft,
+                show_tps,
+                verbose,
+            )
+
+
+def match_model(model_name: str, target: str) -> bool:
+    if not target:
+        return False
+    if model_name == target:
+        return True
+    model_family = model_name.split(":")[0]
+    target_family = target.split(":")[0]
+    if model_family == target_family:
+        return True
+    return False
 
 
 def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
@@ -115,10 +157,17 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         prog=prog,
         description="Ollama model benchmarking",
     )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
     parser.add_argument("--local", action="store_true", help="Show only local models")
     parser.add_argument("--cloud", action="store_true", help="Show only cloud models")
     parser.add_argument(
-        "--model", type=str, default=None, help="Filter to one model (exact match)"
+        "--model",
+        nargs="+",
+        type=str,
+        default=None,
+        help="Filter to specific model names (exact or family match, e.g. --model llama3:latest llama3.2)",
     )
     parser.add_argument(
         "--ttft", action="store_true", help="Benchmark time-to-first-token"
@@ -141,6 +190,23 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Number of models benchmarked in parallel (default 1)",
+    )
+    export_group = parser.add_mutually_exclusive_group()
+    export_group.add_argument(
+        "--json",
+        nargs="?",
+        const="",
+        default=None,
+        dest="json_export",
+        help="Export results as JSON (optionally specify file path)",
+    )
+    export_group.add_argument(
+        "--csv",
+        nargs="?",
+        const="",
+        default=None,
+        dest="csv_export",
+        help="Export results as CSV (optionally specify file path)",
     )
     return parser
 
@@ -173,6 +239,15 @@ def main_entrypoint() -> None:
 
     config = Config.from_env(runs=args.runs, parallel=args.parallel)
 
+    export_fmt = None
+    export_path = None
+    if args.json_export is not None:
+        export_fmt = "json"
+        export_path = args.json_export or None
+    elif args.csv_export is not None:
+        export_fmt = "csv"
+        export_path = args.csv_export or None
+
     def _interactive_prompt() -> str:
         return ListPrompt(
             message="Which Ollama models would you like to list?",
@@ -195,7 +270,18 @@ def main_entrypoint() -> None:
         raise
 
     try:
-        asyncio.run(main(mode, args.ttft, args.tps, args.verbose, args.model, config))
+        asyncio.run(
+            main(
+                mode,
+                args.ttft,
+                args.tps,
+                args.verbose,
+                args.model,
+                config,
+                export_fmt,
+                export_path,
+            )
+        )
     except KeyboardInterrupt:
         console.print("[dim]Interrupted.[/dim]")
         sys.exit(130)

@@ -39,18 +39,23 @@ The cloud API key is **only needed for benchmarking cloud models**. Local model 
 
 ## CLI Flag Reference
 
-CLI flags are parsed by `build_parser()` in `src/ometer/cli.py:113-145`. When provided, they override the corresponding environment variable values.
+CLI flags are parsed by `build_parser()` in `src/ometer/cli.py`. When provided, they override the corresponding environment variable values.
 
-| Flag         | Overrides              | Type       | Description                               |
-| ------------ | ---------------------- | ---------- | ----------------------------------------- |
-| `--local`    | N/A (mode)             | bool       | Show only local models                    |
-| `--cloud`    | N/A (mode)             | bool       | Show only cloud models                    |
-| `--model`    | N/A (filter)           | str        | Filter to one model (exact name match)    |
-| `--ttft`     | N/A (metric)           | bool       | Enable time-to-first-token benchmarking   |
-| `--tps`      | N/A (metric)           | bool       | Enable tokens-per-second benchmarking     |
-| `--verbose`  | N/A (display)          | bool       | Show per-run breakdown in output table    |
-| `--runs`     | `OLLAMAMETER_RUNS`     | int (1–3)  | Number of benchmark prompts per model     |
-| `--parallel` | `OLLAMAMETER_PARALLEL` | int (1–10) | Number of models benchmarked concurrently |
+| Flag         | Overrides              | Type                  | Description                                   |
+| ------------ | ---------------------- | --------------------- | --------------------------------------------- |
+| `--version`  | N/A                    |                       | Show version and exit                         |
+| `--local`    | N/A (mode)             | bool                  | Show only local models                        |
+| `--cloud`    | N/A (mode)             | bool                  | Show only cloud models                        |
+| `--model`    | N/A (filter)           | list[str] (`nargs=+`) | Filter models by name (exact or family match) |
+| `--ttft`     | N/A (metric)           | bool                  | Enable time-to-first-token benchmarking       |
+| `--tps`      | N/A (metric)           | bool                  | Enable tokens-per-second benchmarking         |
+| `--verbose`  | N/A (display)          | bool                  | Show per-run breakdown in output table        |
+| `--runs`     | `OLLAMAMETER_RUNS`     | int (1–3)             | Number of benchmark prompts per model         |
+| `--parallel` | `OLLAMAMETER_PARALLEL` | int (1–10)            | Number of models benchmarked concurrently     |
+| `--json`     | N/A (export)           | optional path         | Export results as JSON (stdout if no path)    |
+| `--csv`      | N/A (export)           | optional path         | Export results as CSV (stdout if no path)     |
+
+`--json` and `--csv` are mutually exclusive.
 
 ## Flag Precedence
 
@@ -61,11 +66,16 @@ CLI flags  >  Environment variables  >  Built-in defaults
 --parallel 4      ──► overrides OLLAMETER_PARALLEL
 --local           ──► sets mode, no env var equivalent
 --cloud           ──► sets mode, no env var equivalent
+--model llama3    ──► filters to matching model name(s)
+--json            ──► prints JSON to stdout
+--json out.json   ──► writes JSON to file
+--csv             ──► prints CSV to stdout
+--csv out.csv     ──► writes CSV to file
 ```
 
 ## Mode Resolution
 
-`resolve_mode()` in `src/ometer/cli.py:148-166` determines which endpoint to query:
+`resolve_mode()` in `src/ometer/cli.py` determines which endpoint to query:
 
 ```txt
 --local --cloud     ──►  None (query both)
@@ -73,7 +83,7 @@ CLI flags  >  Environment variables  >  Built-in defaults
 --cloud            ──►  "cloud"
 (no flags, TTY)    ──►  InquirerPy interactive menu
 (no flags, pipe)   ──►  None (query both, no menu)
---model <name>     ──►  None (query both, filter to name)
+--model <names>    ──►  None (query both, filter to names)
 ```
 
 ## Config Clamping

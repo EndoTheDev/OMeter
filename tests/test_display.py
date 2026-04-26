@@ -10,6 +10,7 @@ from ometer.config import Config
 from ometer.display import (
     _benchmark_model_task,
     _build_colored_table,
+    _collect_pending,
     _color,
     _column_indices,
     _parse_value,
@@ -22,6 +23,7 @@ from ometer.display import (
     process_single_model,
     stream_table,
 )
+from ometer.export import ExportRow
 
 
 class TestExtractContextLength:
@@ -259,7 +261,7 @@ class TestProcessSingleModel:
                 {"prompt": "hi", "ttft": 1.23, "tps": 45.6, "error": None},
             ],
         )
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -273,12 +275,13 @@ class TestProcessSingleModel:
         assert row[2] == "8192"
         assert row[3] == "Q4_0"
         assert "completion" in row[4]
+        assert export_row.model == "llama3"
 
     def test_no_benchmark(self):
         tag_model = {"name": "llama3", "details": {}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
         benchmark = BenchmarkResult(ttft=None, tps=None, error=None, runs=[])
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -288,6 +291,29 @@ class TestProcessSingleModel:
             num_runs=3,
         )
         assert row == ["llama3", "0B", "0", "", ""]
+
+    def test_export_only_returns_empty_row(self):
+        tag_model = {
+            "name": "llama3",
+            "details": {"parameter_size": "8B", "quantization_level": "Q4_0"},
+        }
+        show_data = {
+            "details": {},
+            "capabilities": ["completion"],
+            "model_info": {"model.context_length": 8192},
+        }
+        benchmark = BenchmarkResult(
+            ttft=1.23, tps=45.6, error=None,
+            runs=[{"prompt": "hi", "ttft": 1.23, "tps": 45.6, "error": None}],
+        )
+        row, export_row = process_single_model(
+            tag_model, show_data, benchmark,
+            show_ttft=True, show_tps=True, verbose=False, num_runs=1,
+            export_only=True,
+        )
+        assert row == []
+        assert export_row.model == "llama3"
+        assert export_row.ttft == 1.23
 
 
 class TestProcessSingleModelVerbose:
@@ -303,7 +329,7 @@ class TestProcessSingleModelVerbose:
                 {"prompt": "p2", "ttft": None, "tps": None, "error": None},
             ],
         )
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -327,7 +353,7 @@ class TestProcessSingleModelVerbose:
                 {"prompt": "p2", "ttft": None, "tps": None, "error": "fail"},
             ],
         )
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -351,7 +377,7 @@ class TestProcessSingleModelVerbose:
                 {"prompt": "p2", "ttft": 2.0, "tps": 35.0, "error": None},
             ],
         )
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -373,7 +399,7 @@ class TestProcessSingleModelVerbose:
                 {"prompt": "p1", "ttft": 1.0, "tps": 30.0, "error": None},
             ],
         )
-        row = process_single_model(
+        row, export_row = process_single_model(
             tag_model,
             show_data,
             benchmark,
@@ -481,7 +507,7 @@ class TestBenchmarkModelTask:
             new_callable=AsyncMock,
             return_value=bench_result,
         ):
-            idx, row, errors = await _benchmark_model_task(
+            idx, row, export_row, errors = await _benchmark_model_task(
                 0,
                 model,
                 show_data,
@@ -509,7 +535,7 @@ class TestBenchmarkModelTask:
             new_callable=AsyncMock,
             return_value=bench_result,
         ):
-            idx, row, errors = await _benchmark_model_task(
+            idx, row, export_row, errors = await _benchmark_model_task(
                 0,
                 model,
                 err,
@@ -530,7 +556,7 @@ class TestBenchmarkModelTask:
         model = {"name": "llama3"}
         show_data = {"capabilities": [], "details": {}, "model_info": {}}
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
-        idx, row, errors = await _benchmark_model_task(
+        idx, row, export_row, errors = await _benchmark_model_task(
             0,
             model,
             show_data,
@@ -559,7 +585,7 @@ class TestBenchmarkModelTask:
             new_callable=AsyncMock,
             return_value=bench_result,
         ):
-            idx, row, errors = await _benchmark_model_task(
+            idx, row, export_row, errors = await _benchmark_model_task(
                 0,
                 model,
                 show_data,
@@ -574,6 +600,34 @@ class TestBenchmarkModelTask:
             )
         assert len(errors) == 1
         assert "model not found" in errors[0]
+
+
+class TestCollectPending:
+    @pytest.mark.asyncio
+    async def test_collects_results(self):
+        export = ExportRow(
+            model="llama3", size="8B", context="4096", quant="Q4_0",
+            capabilities="completion", ttft=1.0, tps=50.0, error=None, runs=[],
+        )
+
+        async def _result(
+            idx: int, row: list[str], ex: ExportRow, errs: list[str]
+        ) -> tuple[int, list[str], ExportRow, list[str]]:
+            return idx, row, ex, errs
+
+        task = asyncio.create_task(_result(0, ["llama3", "8B"], export, []))
+        pending: set[asyncio.Task[tuple[int, list[str], ExportRow, list[str]]]] = {task}
+        completed_rows: dict[int, list[str]] = {}
+        completed_exports: dict[int, ExportRow] = {}
+        bench_errors: list[str] = []
+
+        await _collect_pending(
+            pending, completed_rows, completed_exports, bench_errors
+        )
+
+        assert len(pending) == 0
+        assert 0 in completed_rows
+        assert completed_exports[0].model == "llama3"
 
 
 class TestStreamTable:
@@ -828,4 +882,191 @@ class TestStreamTable:
                 show_tps=True,
                 verbose=False,
                 chat_headers=headers,
+            )
+
+    @pytest.mark.asyncio
+    async def test_export_only_returns_export_rows(self):
+        model = {
+            "name": "llama3",
+            "modified_at": "2024-01-01T00:00:00Z",
+            "details": {"parameter_size": "8B"},
+        }
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        bench_result = BenchmarkResult(
+            ttft=1.0,
+            tps=50.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
+        )
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with (
+            patch(
+                "ometer.display.fetch_model_show",
+                new_callable=AsyncMock,
+                return_value=show_data,
+            ),
+            patch(
+                "ometer.display.benchmark_model",
+                new_callable=AsyncMock,
+                return_value=bench_result,
+            ),
+        ):
+            result = await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                [model],
+                "Export Test",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                export_only=True,
+            )
+        assert len(result) == 1
+        assert result[0].model == "llama3"
+        assert result[0].ttft == 1.0
+        assert result[0].tps == 50.0
+
+    @pytest.mark.asyncio
+    async def test_export_only_list_mode(self):
+        model = {
+            "name": "llama3",
+            "modified_at": "2024-01-01T00:00:00Z",
+            "details": {"parameter_size": "8B"},
+        }
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with patch(
+            "ometer.display.fetch_model_show",
+            new_callable=AsyncMock,
+            return_value=show_data,
+        ):
+            result = await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                [model],
+                "List Export",
+                show_ttft=False,
+                show_tps=False,
+                verbose=False,
+                export_only=True,
+            )
+        assert len(result) == 1
+        assert result[0].model == "llama3"
+        assert result[0].ttft is None
+        assert result[0].tps is None
+
+    @pytest.mark.asyncio
+    async def test_export_only_multi_model_benchmark(self):
+        models = [
+            {"name": "llama3", "modified_at": "2024-01-01T00:00:00Z",
+             "details": {"parameter_size": "8B"}},
+            {"name": "mistral", "modified_at": "2024-01-01T00:00:00Z",
+             "details": {"parameter_size": "7B"}},
+        ]
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        call_count = 0
+
+        async def _slow_bench(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                await asyncio.sleep(0.05)
+            return BenchmarkResult(
+                ttft=1.0, tps=50.0, error=None,
+                runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
+            )
+
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with (
+            patch(
+                "ometer.display.fetch_model_show",
+                new_callable=AsyncMock,
+                return_value=show_data,
+            ),
+            patch(
+                "ometer.display.benchmark_model",
+                new_callable=AsyncMock,
+                side_effect=_slow_bench,
+            ),
+        ):
+            result = await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                models,
+                "Multi Export",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                export_only=True,
+            )
+        assert len(result) == 2
+        assert result[0].model == "llama3"
+        assert result[1].model == "mistral"
+
+    @pytest.mark.asyncio
+    async def test_live_multi_model_benchmark(self):
+        models = [
+            {"name": "llama3", "modified_at": "2024-01-01T00:00:00Z",
+             "details": {"parameter_size": "8B"}},
+            {"name": "mistral", "modified_at": "2024-01-01T00:00:00Z",
+             "details": {"parameter_size": "7B"}},
+        ]
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        call_count = 0
+
+        async def _slow_bench(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                await asyncio.sleep(0.05)
+            return BenchmarkResult(
+                ttft=1.0, tps=50.0, error=None,
+                runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
+            )
+
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with (
+            patch(
+                "ometer.display.fetch_model_show",
+                new_callable=AsyncMock,
+                return_value=show_data,
+            ),
+            patch(
+                "ometer.display.benchmark_model",
+                new_callable=AsyncMock,
+                side_effect=_slow_bench,
+            ),
+        ):
+            await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                models,
+                "Live Multi",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
             )

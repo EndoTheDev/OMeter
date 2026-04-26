@@ -13,6 +13,7 @@ from rich.text import Text
 
 from ometer.api import BenchmarkResult, benchmark_model, fetch_model_show
 from ometer.config import Config
+from ometer.export import ExportRow
 
 console = Console()
 
@@ -190,7 +191,8 @@ def process_single_model(
     show_tps: bool,
     verbose: bool,
     num_runs: int,
-) -> list[str]:
+    export_only: bool = False,
+) -> tuple[list[str], ExportRow]:
     model_name = tag_model["name"]
     tag_details = tag_model.get("details", {})
     show_details = show_data.get("details", {})
@@ -205,6 +207,21 @@ def process_single_model(
     context = str(extract_context_length(model_info))
     quant = details.get("quantization_level", "")
     caps = format_capabilities(capabilities) if capabilities else ""
+
+    export_row = ExportRow(
+        model=model_name,
+        size=size,
+        context=context,
+        quant=quant,
+        capabilities=caps,
+        ttft=benchmark.ttft,
+        tps=benchmark.tps,
+        error=benchmark.error,
+        runs=benchmark.runs,
+    )
+
+    if export_only:
+        return [], export_row
 
     row = [model_name, size, context, quant, caps]
 
@@ -238,7 +255,8 @@ def process_single_model(
                 else:
                     row.append(format_float_or_na(tps))
         row.append(format_float_or_na(benchmark.tps))
-    return row
+
+    return row, export_row
 
 
 async def _benchmark_model_task(
@@ -253,7 +271,8 @@ async def _benchmark_model_task(
     verbose: bool,
     chat_headers: dict[str, str] | None,
     semaphore: asyncio.Semaphore,
-) -> tuple[int, list[str], list[str]]:
+    export_only: bool = False,
+) -> tuple[int, list[str], ExportRow, list[str]]:
     show_data: dict[str, Any] = {}
     errors: list[str] = []
     if isinstance(show_result, BaseException):
@@ -270,10 +289,29 @@ async def _benchmark_model_task(
         if bench.error:
             errors.append(f"{model['name']}: {bench.error}")
 
-    row = process_single_model(
-        model, show_data, bench, show_ttft, show_tps, verbose, config.num_runs
+    row, export_row = process_single_model(
+        model, show_data, bench, show_ttft, show_tps, verbose, config.num_runs,
+        export_only=export_only,
     )
-    return idx, row, errors
+    return idx, row, export_row, errors
+
+
+async def _collect_pending(
+    pending: set[asyncio.Task[tuple[int, list[str], ExportRow, list[str]]]],
+    completed_rows: dict[int, list[str]],
+    completed_exports: dict[int, ExportRow],
+    bench_errors: list[str],
+) -> None:
+    done, still_pending = await asyncio.wait(
+        pending, return_when=asyncio.FIRST_COMPLETED
+    )
+    pending.clear()
+    pending.update(still_pending)
+    for task in done:
+        idx, row, export_row, errors = task.result()
+        bench_errors.extend(errors)
+        completed_rows[idx] = row
+        completed_exports[idx] = export_row
 
 
 async def stream_table(
@@ -286,7 +324,8 @@ async def stream_table(
     show_tps: bool,
     verbose: bool,
     chat_headers: dict[str, str] | None = None,
-) -> None:
+    export_only: bool = False,
+) -> list[ExportRow]:
     table = build_table(title, show_ttft, show_tps, verbose, config.num_runs)
 
     semaphore = asyncio.Semaphore(config.num_parallel)
@@ -299,7 +338,7 @@ async def stream_table(
     with console.status(f"Fetching details for {len(models)} model(s)…"):
         show_results = await asyncio.gather(*show_tasks, return_exceptions=True)
 
-    pending: set[asyncio.Task[tuple[int, list[str], list[str]]]] = set()
+    pending: set[asyncio.Task[tuple[int, list[str], ExportRow, list[str]]]] = set()
     for idx, (model, show_result) in enumerate(zip(models, show_results)):
         task = asyncio.create_task(
             _benchmark_model_task(
@@ -314,56 +353,80 @@ async def stream_table(
                 verbose,
                 chat_headers,
                 semaphore,
+                export_only=export_only,
             )
         )
         pending.add(task)
 
     completed_rows: dict[int, list[str]] = {}
+    completed_exports: dict[int, ExportRow] = {}
     ordered_rows: list[list[str]] = []
+    ordered_exports: list[ExportRow] = []
     next_row = 0
     total = len(models)
     is_benchmarking = show_ttft or show_tps
 
     bench_errors: list[str] = []
-    if is_benchmarking:
-        spinner = Spinner("dots", f"Benchmarking 0/{total} model(s)…")
-        live_renderable = Group(table, spinner)
-    else:
-        spinner = None
-        live_renderable = table
-    with Live(live_renderable, console=console, refresh_per_second=4) as live:
-        while pending:
-            done, pending = await asyncio.wait(
-                pending, return_when=asyncio.FIRST_COMPLETED
-            )
-            for task in done:
-                idx, row, errors = task.result()
-                bench_errors.extend(errors)
-                completed_rows[idx] = row
+    spinner: Spinner | None = None
+    live_renderable: Table | Group = table
 
-            while next_row in completed_rows:
-                row = completed_rows.pop(next_row)
+    if not export_only:
+        if is_benchmarking:
+            spinner = Spinner("dots", f"Benchmarking 0/{total} model(s)…")
+            live_renderable = Group(table, spinner)
+
+    def _process_completed() -> None:
+        nonlocal next_row
+        while next_row in completed_exports:
+            row = completed_rows.pop(next_row)
+            export = completed_exports.pop(next_row)
+            if not export_only:
                 table.add_row(*row)
-                ordered_rows.append(row)
-                next_row += 1
+            ordered_rows.append(row)
+            ordered_exports.append(export)
+            next_row += 1
 
-            if spinner:
-                spinner.update(
-                    text=(
-                        f"Benchmarking {next_row}/{total} model(s)…"
-                        if pending
-                        else f"Completed {next_row}/{total}"
+    def _progress_text() -> str:
+        return (
+            f"Benchmarking {next_row}/{total} model(s)…"
+            if pending
+            else f"Completed {next_row}/{total}"
+        )
+
+    if export_only:
+        if is_benchmarking:
+            with console.status(f"Benchmarking 0/{total} model(s)…") as status:
+                while pending:
+                    await _collect_pending(
+                        pending, completed_rows, completed_exports, bench_errors
                     )
+                    _process_completed()
+                    status.update(_progress_text())
+        else:
+            while pending:
+                await _collect_pending(
+                    pending, completed_rows, completed_exports, bench_errors
                 )
-                live.update(Group(table, spinner))
-            else:
-                live.update(table)
-
-        if ordered_rows and (show_ttft or show_tps):
-            final_table = _build_colored_table(
-                title, show_ttft, show_tps, verbose, config.num_runs, ordered_rows
-            )
-            live.update(final_table)
+                _process_completed()
+    else:
+        with Live(live_renderable, console=console, refresh_per_second=4) as live:
+            while pending:
+                await _collect_pending(
+                    pending, completed_rows, completed_exports, bench_errors
+                )
+                _process_completed()
+                if spinner:
+                    spinner.update(text=_progress_text())
+                    live.update(Group(table, spinner))
+                else:
+                    live.update(table)
+            if ordered_rows and (show_ttft or show_tps):
+                final_table = _build_colored_table(
+                    title, show_ttft, show_tps, verbose, config.num_runs, ordered_rows
+                )
+                live.update(final_table)
 
     for err in bench_errors:
         console.print(f"[yellow]⚠ {err}[/yellow]")
+
+    return ordered_exports

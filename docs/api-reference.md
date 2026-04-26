@@ -67,28 +67,38 @@ Benchmarks embedding models.
 
 ### cli.py
 
-| Function                                                         | Lines   | Description                                                |
-| ---------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
-| `main(mode, show_ttft, show_tps, verbose, target_model, config)` | 17-111  | Async main: fetches models, dispatches to display          |
-| `build_parser(prog)`                                             | 113-145 | Builds `argparse.ArgumentParser` with all flags            |
-| `resolve_mode(args, is_tty, prompt_fn)`                          | 148-166 | Determines local/cloud/both from flags or interactive menu |
-| `main_entrypoint()`                                              | 169-201 | Synchronous entry point registered in `pyproject.toml`     |
+| Function                                                                                   | Lines   | Description                                                |
+| ------------------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------- |
+| `main(mode, show_ttft, show_tps, verbose, target_models, config, export_fmt, export_path)` | 19-140  | Async main: fetches models, dispatches to display/export   |
+| `match_model(model_name, target)`                                                          | 143-152 | Exact or family-prefix model name matching                 |
+| `build_parser(prog)`                                                                       | 155-211 | Builds `argparse.ArgumentParser` with all flags            |
+| `resolve_mode(args, is_tty, prompt_fn)`                                                    | 214-232 | Determines local/cloud/both from flags or interactive menu |
+| `main_entrypoint()`                                                                        | 235-287 | Synchronous entry point registered in `pyproject.toml`     |
 
 ### display.py
 
-| Function                                                     | Lines   | Description                                             |
-| ------------------------------------------------------------ | ------- | ------------------------------------------------------- |
-| `extract_context_length(model_info)`                         | 20-24   | Finds `*.context_length` key in model info              |
-| `format_size(parameter_size, model_name)`                    | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)      |
-| `format_capabilities(caps)`                                  | 52-53   | Joins sorted capabilities list                          |
-| `format_float_or_na(val)`                                    | 56-59   | Formats float or returns `"n/a"`                        |
-| `build_table(title, show_ttft, show_tps, verbose, num_runs)` | 62-81   | Creates `rich.Table` with appropriate columns           |
-| `_thresholds(values)`                                        | 112-119 | Computes 33rd/66th percentile boundaries                |
-| `_color(cell, thresholds, lower_is_better)`                  | 122-145 | Applies green/orange/red styling                        |
-| `_build_colored_table(...)`                                  | 148-182 | Rebuilds table with threshold-based coloring            |
-| `process_single_model(...)`                                  | 185-241 | Merges tag + show data + benchmark into a row           |
-| `_benchmark_model_task(...)`                                 | 244-276 | Async task: fetch show data, run benchmark, produce row |
-| `stream_table(...)`                                          | 279-369 | Orchestrates live table rendering with `asyncio.wait`   |
+| Function                                                                     | Lines   | Description                                                 |
+| ---------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
+| `extract_context_length(model_info)`                                         | 20-24   | Finds `*.context_length` key in model info                  |
+| `format_size(parameter_size, model_name)`                                    | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)          |
+| `format_capabilities(caps)`                                                  | 52-53   | Joins sorted capabilities list                              |
+| `format_float_or_na(val)`                                                    | 56-59   | Formats float or returns `"n/a"`                            |
+| `build_table(title, show_ttft, show_tps, verbose, num_runs)`                 | 62-81   | Creates `rich.Table` with appropriate columns               |
+| `_thresholds(values)`                                                        | 112-119 | Computes 33rd/66th percentile boundaries                    |
+| `_color(cell, thresholds, lower_is_better)`                                  | 122-145 | Applies green/orange/red styling                            |
+| `_build_colored_table(...)`                                                  | 148-182 | Rebuilds table with threshold-based coloring                |
+| `process_single_model(..., export_only=False)`                               | 186-254 | Merges tag + show data + benchmark into row and ExportRow   |
+| `_benchmark_model_task(..., export_only=False)`                              | 257-296 | Async task: fetch show data, run benchmark, produce row     |
+| `_collect_pending(pending, completed_rows, completed_exports, bench_errors)` | 299-309 | Awaits next completed task, collects results into dicts     |
+| `stream_table(..., export_only=False)`                                       | 312-430 | Orchestrates live table rendering or export-only collection |
+
+### export.py
+
+| Function                                                                  | Lines   | Description                                                           |
+| ------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------- |
+| `format_json(rows, num_runs, show_ttft, show_tps, verbose)`               | 23-52   | Formats results as JSON array string; `error` key omitted when `None` |
+| `format_csv(rows, num_runs, show_ttft, show_tps, verbose)`                | 55-98   | Formats results as CSV string with headers                            |
+| `export_results(rows, fmt, path, num_runs, show_ttft, show_tps, verbose)` | 101-118 | Dispatches to format_json/format_csv and writes output                |
 
 ## BenchmarkResult Dataclass
 
@@ -102,6 +112,24 @@ class BenchmarkResult:
 ```
 
 Defined at `src/ometer/api.py:14-19`.
+
+## ExportRow Dataclass
+
+```python
+@dataclass
+class ExportRow:
+    model: str              # Model name
+    size: str               # Parameter size (e.g. "8B")
+    context: str            # Context length (e.g. "8192")
+    quant: str              # Quantization level (e.g. "Q4_0")
+    capabilities: str       # Comma-separated capabilities
+    ttft: float | None      # Average time-to-first-token
+    tps: float | None       # Average tokens-per-second
+    error: str | None        # First error, if any
+    runs: list[dict]         # Per-run {"prompt", "ttft", "tps", "error"}
+```
+
+Defined at `src/ometer/export.py:10-20`.
 
 ## Table Column Layout
 

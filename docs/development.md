@@ -31,12 +31,13 @@ uv run pytest tests/test_api.py
 
 Test files are located in `tests/`:
 
-| File              | Covers                                          |
-| ----------------- | ----------------------------------------------- |
-| `test_api.py`     | `api.py` — fetch, benchmark, sort functions     |
-| `test_cli.py`     | `cli.py` — argument parsing, mode resolution    |
-| `test_config.py`  | `config.py` — env loading, clamping, defaults   |
-| `test_display.py` | `display.py` — formatting, thresholds, coloring |
+| File              | Covers                                                                           |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `test_api.py`     | `api.py` — fetch, benchmark, sort functions                                      |
+| `test_cli.py`     | `cli.py` — argument parsing, mode resolution, model matching, export flags       |
+| `test_config.py`  | `config.py` — env loading, clamping, defaults                                    |
+| `test_display.py` | `display.py` — formatting, thresholds, coloring, export-only, `_collect_pending` |
+| `test_export.py`  | `export.py` — JSON/CSV formatting, file output                                   |
 
 ## Dependencies
 
@@ -67,18 +68,20 @@ Defined in `pyproject.toml [dependency-groups.dev]`:
 ```txt
 OllamaMeter/
 ├── src/ometer/
-│   ├── __init__.py       # Package init (empty)
+│   ├── __init__.py       # Package version (__version__)
 │   ├── __main__.py       # `python -m ometer` entry point
 │   ├── api.py            # API communication, BenchmarkResult, benchmarking
-│   ├── cli.py            # Argument parsing, mode resolution, main loop
+│   ├── cli.py            # Argument parsing, model matching, main loop
 │   ├── config.py         # Config class, .env loading
-│   └── display.py        # Rich tables, live display, color logic
+│   ├── display.py        # Rich tables, live display, color logic
+│   └── export.py         # JSON/CSV formatting and file output
 ├── tests/
 │   ├── __init__.py
 │   ├── test_api.py
 │   ├── test_cli.py
 │   ├── test_config.py
-│   └── test_display.py
+│   ├── test_display.py
+│   └── test_export.py
 ├── assets/                # Screenshots for README
 ├── docs/                  # Project documentation
 ├── pyproject.toml         # Project metadata, dependencies, entry points
