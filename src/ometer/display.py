@@ -60,7 +60,7 @@ def format_float_or_na(val: float | None) -> str:
 
 
 def build_table(
-    title: str, show_ttf: bool, show_tps: bool, verbose: bool, num_runs: int
+    title: str, show_ttft: bool, show_tps: bool, verbose: bool, num_runs: int
 ) -> Table:
     table = Table(title=title, title_style="bold cyan")
     table.add_column("Model", style="cyan", no_wrap=True)
@@ -68,7 +68,7 @@ def build_table(
     table.add_column("Context", justify="right", style="yellow")
     table.add_column("Quant", style="magenta")
     table.add_column("Capabilities", style="white")
-    if show_ttf:
+    if show_ttft:
         if verbose:
             for i in range(1, num_runs + 1):
                 table.add_column(f"TTFT{i}", justify="right", style="blue")
@@ -82,16 +82,16 @@ def build_table(
 
 
 def _column_indices(
-    show_ttf: bool, show_tps: bool, verbose: bool, num_runs: int
+    show_ttft: bool, show_tps: bool, verbose: bool, num_runs: int
 ) -> tuple[list[int], list[int]]:
-    ttf_indices: list[int] = []
+    ttft_indices: list[int] = []
     tps_indices: list[int] = []
     idx = 5
-    if show_ttf:
+    if show_ttft:
         if verbose:
-            ttf_indices.extend(range(idx, idx + num_runs))
+            ttft_indices.extend(range(idx, idx + num_runs))
             idx += num_runs
-        ttf_indices.append(idx)
+        ttft_indices.append(idx)
         idx += 1
     if show_tps:
         if verbose:
@@ -99,7 +99,7 @@ def _column_indices(
             idx += num_runs
         tps_indices.append(idx)
         idx += 1
-    return ttf_indices, tps_indices
+    return ttft_indices, tps_indices
 
 
 def _parse_value(cell: str) -> float | None:
@@ -147,34 +147,34 @@ def _color(
 
 def _build_colored_table(
     title: str,
-    show_ttf: bool,
+    show_ttft: bool,
     show_tps: bool,
     verbose: bool,
     num_runs: int,
     rows: list[list[str]],
 ) -> Table:
-    table = build_table(title, show_ttf, show_tps, verbose, num_runs)
-    ttf_indices, tps_indices = _column_indices(show_ttf, show_tps, verbose, num_runs)
+    table = build_table(title, show_ttft, show_tps, verbose, num_runs)
+    ttft_indices, tps_indices = _column_indices(show_ttft, show_tps, verbose, num_runs)
 
-    ttf_values: list[float] = []
+    ttft_values: list[float] = []
     tps_values: list[float] = []
     for row in rows:
-        for i in ttf_indices:
+        for i in ttft_indices:
             v = _parse_value(row[i])
             if v is not None:
-                ttf_values.append(v)
+                ttft_values.append(v)
         for i in tps_indices:
             v = _parse_value(row[i])
             if v is not None:
                 tps_values.append(v)
 
-    ttf_thresholds = _thresholds(ttf_values)
+    ttft_thresholds = _thresholds(ttft_values)
     tps_thresholds = _thresholds(tps_values)
 
     for row in rows:
         styled: list[str | Text] = list(row)
-        for i in ttf_indices:
-            styled[i] = _color(row[i], ttf_thresholds, lower_is_better=True)
+        for i in ttft_indices:
+            styled[i] = _color(row[i], ttft_thresholds, lower_is_better=True)
         for i in tps_indices:
             styled[i] = _color(row[i], tps_thresholds, lower_is_better=False)
         table.add_row(*styled)
@@ -186,7 +186,7 @@ def process_single_model(
     tag_model: dict[str, Any],
     show_data: dict[str, Any],
     benchmark: BenchmarkResult,
-    show_ttf: bool,
+    show_ttft: bool,
     show_tps: bool,
     verbose: bool,
     num_runs: int,
@@ -210,20 +210,20 @@ def process_single_model(
 
     runs = benchmark.runs
 
-    if show_ttf:
+    if show_ttft:
         if verbose:
             for i in range(num_runs):
                 if i < len(runs):
                     err = runs[i].get("error")
-                    ttf = runs[i]["ttf"]
+                    ttft = runs[i]["ttft"]
                 else:
                     err = ""
-                    ttf = None
+                    ttft = None
                 if err:
                     row.append("err")
                 else:
-                    row.append(format_float_or_na(ttf))
-        row.append(format_float_or_na(benchmark.ttf))
+                    row.append(format_float_or_na(ttft))
+        row.append(format_float_or_na(benchmark.ttft))
     if show_tps:
         if verbose:
             for i in range(num_runs):
@@ -248,7 +248,7 @@ async def _benchmark_model_task(
     client: httpx.AsyncClient,
     config: Config,
     base_url: str,
-    show_ttf: bool,
+    show_ttft: bool,
     show_tps: bool,
     verbose: bool,
     chat_headers: dict[str, str] | None,
@@ -261,8 +261,8 @@ async def _benchmark_model_task(
     else:
         show_data = show_result  # type: ignore
 
-    bench = BenchmarkResult(ttf=None, tps=None, error=None)
-    if show_ttf or show_tps:
+    bench = BenchmarkResult(ttft=None, tps=None, error=None)
+    if show_ttft or show_tps:
         async with semaphore:
             bench = await benchmark_model(
                 client, config, base_url, model["name"], show_data, chat_headers
@@ -271,7 +271,7 @@ async def _benchmark_model_task(
             errors.append(f"{model['name']}: {bench.error}")
 
     row = process_single_model(
-        model, show_data, bench, show_ttf, show_tps, verbose, config.num_runs
+        model, show_data, bench, show_ttft, show_tps, verbose, config.num_runs
     )
     return idx, row, errors
 
@@ -282,12 +282,12 @@ async def stream_table(
     base_url: str,
     models: list[dict[str, Any]],
     title: str,
-    show_ttf: bool,
+    show_ttft: bool,
     show_tps: bool,
     verbose: bool,
     chat_headers: dict[str, str] | None = None,
 ) -> None:
-    table = build_table(title, show_ttf, show_tps, verbose, config.num_runs)
+    table = build_table(title, show_ttft, show_tps, verbose, config.num_runs)
 
     semaphore = asyncio.Semaphore(config.num_parallel)
 
@@ -309,7 +309,7 @@ async def stream_table(
                 client,
                 config,
                 base_url,
-                show_ttf,
+                show_ttft,
                 show_tps,
                 verbose,
                 chat_headers,
@@ -322,7 +322,7 @@ async def stream_table(
     ordered_rows: list[list[str]] = []
     next_row = 0
     total = len(models)
-    is_benchmarking = show_ttf or show_tps
+    is_benchmarking = show_ttft or show_tps
 
     bench_errors: list[str] = []
     if is_benchmarking:
@@ -359,9 +359,9 @@ async def stream_table(
             else:
                 live.update(table)
 
-        if ordered_rows and (show_ttf or show_tps):
+        if ordered_rows and (show_ttft or show_tps):
             final_table = _build_colored_table(
-                title, show_ttf, show_tps, verbose, config.num_runs, ordered_rows
+                title, show_ttft, show_tps, verbose, config.num_runs, ordered_rows
             )
             live.update(final_table)
 

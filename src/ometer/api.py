@@ -13,7 +13,7 @@ from ometer.config import Config
 
 @dataclass
 class BenchmarkResult:
-    ttf: float | None
+    ttft: float | None
     tps: float | None
     error: str | None
     runs: list[dict[str, Any]] = field(default_factory=list)
@@ -123,13 +123,13 @@ async def benchmark_chat_single_run(
         error = "Stream ended without completion"
 
     if first_token_time >= 0:
-        ttf = first_token_time
+        ttft = first_token_time
     else:
-        ttf = None
+        ttft = None
     duration = eval_duration or total_duration
     tps = eval_count / (duration / 1e9) if duration else None
 
-    return {"ttf": ttf, "tps": tps, "error": error}
+    return {"ttft": ttft, "tps": tps, "error": error}
 
 
 async def benchmark_embed_single_run(
@@ -163,10 +163,10 @@ async def benchmark_embed_single_run(
     except Exception as e:
         error = str(e)
 
-    ttf = time.perf_counter() - start
+    ttft = time.perf_counter() - start
     tps = prompt_eval_count / (total_duration / 1e9) if total_duration else None
 
-    return {"ttf": ttf, "tps": tps, "error": error}
+    return {"ttft": ttft, "tps": tps, "error": error}
 
 
 async def benchmark_model(
@@ -197,19 +197,19 @@ async def benchmark_model(
 
     good_runs = [r for r in runs if not r["error"]]
     if good_runs:
-        ttf_runs = [r for r in good_runs if r["ttf"] is not None]
-        avg_ttf: float | None = (
-            sum(r["ttf"] for r in ttf_runs) / len(ttf_runs) if ttf_runs else None
+        ttft_runs = [r for r in good_runs if r["ttft"] is not None]
+        avg_ttft: float | None = (
+            sum(r["ttft"] for r in ttft_runs) / len(ttft_runs) if ttft_runs else None
         )
         avg_tps = None
         tps_runs = [r for r in good_runs if r["tps"] is not None]
         if tps_runs:
             avg_tps = sum(r["tps"] for r in tps_runs) / len(tps_runs)
         first_error = errors[0] if errors else None
-        return BenchmarkResult(ttf=avg_ttf, tps=avg_tps, error=first_error, runs=runs)
+        return BenchmarkResult(ttft=avg_ttft, tps=avg_tps, error=first_error, runs=runs)
 
     return BenchmarkResult(
-        ttf=None,
+        ttft=None,
         tps=None,
         error=errors[0] if errors else "All benchmark runs failed",
         runs=runs,

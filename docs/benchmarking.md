@@ -15,7 +15,7 @@ The benchmarking pipeline is an asynchronous workflow that discovers models, mea
 
 ## Measurement Methodology
 
-### TTF — Time-To-First-Token
+### TTFT — Time-To-First-Token
 
 Measures latency from request start to the first meaningful content token.
 
@@ -25,15 +25,15 @@ Measures latency from request start to the first meaningful content token.
 2. Streams the response from `POST /api/chat`.
 3. On each chunk, checks for `message.content` (or `message.thinking` for thinking models).
 4. Sets `first_token_time` on the first non-empty content/thinking field.
-5. Final TTF = `first_token_time - start` (seconds).
+5. Final TTFT = `first_token_time - start` (seconds).
 
 **Thinking model detection** (`src/ometer/api.py:80`):
 
-Models with `"thinking"` in their `capabilities` list have their TTF measured from the first thinking or content token, not just content. This ensures accurate latency measurement for models like DeepSeek-R1.
+Models with `"thinking"` in their `capabilities` list have their TTFT measured from the first thinking or content token, not just content. This ensures accurate latency measurement for models like DeepSeek-R1.
 
 **Embedding models** (`src/ometer/api.py:135-169`):
 
-Since embedding requests are not streamed, TTF for embedding models is the total request duration: `time.perf_counter() - start`.
+Since embedding requests are not streamed, TTFT for embedding models is the total request duration: `time.perf_counter() - start`.
 
 ### TPS — Tokens-Per-Second
 
@@ -57,8 +57,8 @@ tps = prompt_eval_count / (total_duration / 1e9)
 
 - If the stream ends without a `done` chunk, `error` is set to `"Stream ended without completion"`.
 - Errors from individual runs are collected into the `BenchmarkResult.error` field (first error wins).
-- Runs with errors are excluded from the averaged TTF/TPS.
-- If all runs fail, `ttf` and `tps` are `None`.
+- Runs with errors are excluded from the averaged TTFT/TPS.
+- If all runs fail, `ttft` and `tps` are `None`.
 
 ## Multi-Prompt Averaging
 
@@ -95,7 +95,7 @@ After all models are benchmarked, `_build_colored_table()` computes percentile-b
 
 | Metric | Lower is better? |    Green    |   Orange   |     Red     |
 | ------ | :--------------: | :---------: | :--------: | :---------: |
-| TTF    |       Yes        | Lowest 33%  | Middle 33% | Highest 33% |
+| TTFT   |       Yes        | Lowest 33%  | Middle 33% | Highest 33% |
 | TPS    |        No        | Highest 33% | Middle 33% | Lowest 33%  |
 
 Error values (`"err"`, `"n/a"`) are always colored red.
@@ -120,11 +120,11 @@ benchmark_model()
      │      │
      │      ├─ is_embedding_model?  ──►  benchmark_embed_single_run()
      │      │                             POST /api/embed
-     │      │                             └─ returns {ttf, tps, error}
-     │      │
-     │      └─ else  ──►  benchmark_chat_single_run()
-     │                      POST /api/chat (streamed)
-     │                      └─ returns {ttf, tps, error}
+│      │                             └─ returns {ttft, tps, error}
+│      │
+│      └─ else  ──►  benchmark_chat_single_run()
+│                      POST /api/chat (streamed)
+│                      └─ returns {ttft, tps, error}
      │
-     └─ averages successful runs ──►  BenchmarkResult(ttf, tps, error, runs)
+      └─ averages successful runs ──►  BenchmarkResult(ttft, tps, error, runs)
 ```

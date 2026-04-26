@@ -11,7 +11,7 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 
 - 📋 **List models** from local and cloud Ollama endpoints
 - 📊 **Rich tables** with sorting by modification date (newest first)
-- ⏱️ **Benchmark** time-to-first-token (TTF) and tokens-per-second (TPS)
+- ⏱️ **Benchmark** time-to-first-token (TTFT) and tokens-per-second (TPS)
 - 🔍 **Single-model mode** for targeted benchmarking
 - 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
@@ -30,8 +30,8 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 </details>
 
 <details name="screenshots">
-<summary><strong>Benchmark with per-run breakdown</strong> — <code>ometer --local --ttf --tps --verbose --runs 2 --parallel 1</code></summary>
-<img src="assets/local-ttf-tps-verbose-runs-parallel.png" alt="Benchmark with breakdown">
+<summary><strong>Benchmark with per-run breakdown</strong> — <code>ometer --local --ttftt --tps --verbose --runs 2 --parallel 1</code></summary>
+<img src="assets/local-ttft-tps-verbose-runs-parallel.png" alt="Benchmark with breakdown">
 </details>
 
 ## Installation
@@ -105,38 +105,38 @@ ometer --local --cloud
 Benchmark **time-to-first-token** and **tokens-per-second**:
 
 ```bash
-ometer --cloud --ttf --tps
+ometer --cloud --ttft --tps
 ```
 
 Benchmark models in **parallel** for faster results (default is 1 — max 10):
 
 ```bash
-ometer --cloud --ttf --tps --parallel 4
+ometer --cloud --ttft --tps --parallel 4
 ```
 
 Show **per-run breakdown** in the table:
 
 ```bash
-ometer --cloud --ttf --tps --verbose
+ometer --cloud --ttft --tps --verbose
 ```
 
 Run with **fewer benchmark prompts** for faster results (default is 3 — max 3):
 
 ```bash
-ometer --cloud --ttf --tps --verbose --runs 1
-ometer --cloud --ttf --tps --verbose --runs 2
+ometer --cloud --ttft --tps --verbose --runs 1
+ometer --cloud --ttft --tps --verbose --runs 2
 ```
 
 Filter to a **specific model** (searches both local and cloud if no endpoint flag is given):
 
 ```bash
-ometer --model glm-5.1 --ttf --tps
+ometer --model glm-5.1 --ttft --tps
 ```
 
 Combined with an endpoint flag:
 
 ```bash
-ometer --cloud --model glm-5.1 --ttf --tps
+ometer --cloud --model glm-5.1 --ttft --tps
 ```
 
 See all options:
@@ -186,13 +186,13 @@ User ──► cli.py ──► config.py ──► api.py ──► display.py
 
 - **cli.py** — Entry point, argument parsing, interactive model selection
 - **config.py** — Hierarchical `.env` loading, settings validation and clamping
-- **api.py** — HTTP communication with Ollama, TTF/TPS measurement
+- **api.py** — HTTP communication with Ollama, TTFT/TPS measurement
 - **display.py** — Rich terminal UI, live table updates, percentile-based color coding
 
 For detailed documentation, see the [docs](docs/) directory:
 
 - [Architecture](docs/architecture.md) — Module decomposition, request lifecycle, data entities
-- [Benchmarking Pipeline](docs/benchmarking.md) — TTF/TPS methodology, concurrency, color thresholds
+- [Benchmarking Pipeline](docs/benchmarking.md) — TTFT/TPS methodology, concurrency, color thresholds
 - [Configuration](docs/configuration.md) — Environment variables, CLI flags, loading order
 - [API Reference](docs/api-reference.md) — Ollama endpoints, function reference, BenchmarkResult
 - [Development](docs/development.md) — Dev setup, running tests, project structure, conventions

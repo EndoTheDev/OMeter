@@ -46,7 +46,7 @@ CLI flags are parsed by `build_parser()` in `src/ometer/cli.py:113-145`. When pr
 | `--local`    | N/A (mode)             | bool       | Show only local models                    |
 | `--cloud`    | N/A (mode)             | bool       | Show only cloud models                    |
 | `--model`    | N/A (filter)           | str        | Filter to one model (exact name match)    |
-| `--ttf`      | N/A (metric)           | bool       | Enable time-to-first-token benchmarking   |
+| `--ttft`     | N/A (metric)           | bool       | Enable time-to-first-token benchmarking   |
 | `--tps`      | N/A (metric)           | bool       | Enable tokens-per-second benchmarking     |
 | `--verbose`  | N/A (display)          | bool       | Show per-run breakdown in output table    |
 | `--runs`     | `OLLAMAMETER_RUNS`     | int (1–3)  | Number of benchmark prompts per model     |

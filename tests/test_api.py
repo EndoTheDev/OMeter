@@ -128,8 +128,8 @@ class TestBenchmarkChatSingleRun:
             result = await benchmark_chat_single_run(
                 client, "http://localhost:11434", "llama3", "hi"
             )
-        assert result["ttf"] is not None
-        assert result["ttf"] >= 0
+        assert result["ttft"] is not None
+        assert result["ttft"] >= 0
         assert result["tps"] > 0
         assert result["error"] is None
 
@@ -189,7 +189,7 @@ class TestBenchmarkChatSingleRun:
             result = await benchmark_chat_single_run(
                 client, "http://localhost:11434", "thinker", "hi", show_data=show_data
             )
-        assert result["ttf"] is not None
+        assert result["ttft"] is not None
         assert result["error"] is None
 
     @pytest.mark.asyncio
@@ -215,7 +215,7 @@ class TestBenchmarkChatSingleRun:
             result = await benchmark_chat_single_run(
                 client, "http://localhost:11434", "llama3", "hi"
             )
-        assert result["ttf"] is not None
+        assert result["ttft"] is not None
         assert result["error"] is None
 
     @pytest.mark.asyncio
@@ -241,7 +241,7 @@ class TestBenchmarkChatSingleRun:
             result = await benchmark_chat_single_run(
                 client, "http://localhost:11434", "llama3", "hi"
             )
-        assert result["ttf"] is not None
+        assert result["ttft"] is not None
         assert result["error"] is None
 
 
@@ -256,8 +256,8 @@ class TestBenchmarkEmbedSingleRun:
             result = await benchmark_embed_single_run(
                 client, "http://localhost:11434", "nomic", "hello"
             )
-        assert result["ttf"] is not None
-        assert result["ttf"] >= 0
+        assert result["ttft"] is not None
+        assert result["ttft"] >= 0
         assert result["tps"] > 0
         assert result["error"] is None
 
@@ -300,7 +300,7 @@ class TestBenchmarkModel:
                 client, cfg, "http://localhost:11434", "llama3", show_data
             )
         assert isinstance(result, BenchmarkResult)
-        assert result.ttf is not None
+        assert result.ttft is not None
         assert result.tps is not None
         assert result.tps > 0
         assert result.error is None

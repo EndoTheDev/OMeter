@@ -8,7 +8,7 @@ OllamaMeter is structured as four modules inside `src/ometer/`, each handling a 
 | ------- | ------------ | ---------------------------------------------------------------------------------------- |
 | CLI     | `cli.py`     | Entry point, argument parsing (`argparse`), interactive model selection (`InquirerPy`)   |
 | Config  | `config.py`  | Hierarchical `.env` loading, runtime settings validation and clamping                    |
-| API     | `api.py`     | HTTP communication with Ollama, TTF/TPS calculation, `BenchmarkResult` dataclass         |
+| API     | `api.py`     | HTTP communication with Ollama, TTFT/TPS calculation, `BenchmarkResult` dataclass         |
 | Display | `display.py` | Rich-based terminal UI, live table updates, color thresholding, async task orchestration |
 
 ## Request Lifecycle
@@ -37,7 +37,7 @@ User runs `ometer` or `ollamameter`
    │           │  benchmark_model()
    │           │    ├─ benchmark_chat_single_run()  ──►  POST /api/chat (streamed)
    │           │    └─ benchmark_embed_single_run()  ──►  POST /api/embed
-   │           │  Returns BenchmarkResult(ttf, tps, error, runs)
+   │           │  Returns BenchmarkResult(ttft, tps, error, runs)
    └────┬─────┘
         │
         ▼
@@ -56,10 +56,10 @@ User runs `ometer` or `ollamameter`
 
 ```txt
 BenchmarkResult
-├── ttf: float | None          # Average time-to-first-token across runs
+├── ttft: float | None         # Average time-to-first-token across runs
 ├── tps: float | None          # Average tokens-per-second across runs
 ├── error: str | None          # First error encountered, if any
-└── runs: list[dict]           # Per-run details (prompt, ttf, tps, error)
+└── runs: list[dict]           # Per-run details (prompt, ttft, tps, error)
 ```
 
 Defined in `src/ometer/api.py:14-19`.
@@ -87,7 +87,7 @@ Handled by `build_parser()` in `src/ometer/cli.py:113-145`:
 | `--local`    | bool       | Show only local models                |
 | `--cloud`    | bool       | Show only cloud models                |
 | `--model`    | str        | Filter to one model (exact match)     |
-| `--ttf`      | bool       | Benchmark time-to-first-token         |
+| `--ttft`     | bool       | Benchmark time-to-first-token         |
 | `--tps`      | bool       | Benchmark tokens-per-second           |
 | `--verbose`  | bool       | Show per-run breakdown                |
 | `--runs`     | int (1–3)  | Number of benchmark prompts per model |

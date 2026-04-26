@@ -16,7 +16,7 @@ from ometer.display import console, stream_table
 
 async def main(
     mode: str | None,
-    show_ttf: bool,
+    show_ttft: bool,
     show_tps: bool,
     verbose: bool,
     target_model: str | None,
@@ -38,7 +38,7 @@ async def main(
                 console.print(f"[yellow]⚠ Skipping local Ollama ({e}).[/yellow]")
 
         if (
-            (show_ttf or show_tps)
+            (show_ttft or show_tps)
             and mode in (None, "cloud")
             and not config.cloud_api_key
         ):
@@ -82,7 +82,7 @@ async def main(
                 config.local_base_url,
                 local_models,
                 local_title,
-                show_ttf,
+                show_ttft,
                 show_tps,
                 verbose,
             )
@@ -101,7 +101,7 @@ async def main(
                 config.cloud_base_url,
                 cloud_models,
                 cloud_title,
-                show_ttf,
+                show_ttft,
                 show_tps,
                 verbose,
                 chat_headers,
@@ -121,7 +121,7 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         "--model", type=str, default=None, help="Filter to one model (exact match)"
     )
     parser.add_argument(
-        "--ttf", action="store_true", help="Benchmark time-to-first-token"
+        "--ttft", action="store_true", help="Benchmark time-to-first-token"
     )
     parser.add_argument(
         "--tps", action="store_true", help="Benchmark tokens-per-second"
@@ -195,7 +195,7 @@ def main_entrypoint() -> None:
         raise
 
     try:
-        asyncio.run(main(mode, args.ttf, args.tps, args.verbose, args.model, config))
+        asyncio.run(main(mode, args.ttft, args.tps, args.verbose, args.model, config))
     except KeyboardInterrupt:
         console.print("[dim]Interrupted.[/dim]")
         sys.exit(130)

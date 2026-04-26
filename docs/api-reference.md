@@ -69,7 +69,7 @@ Benchmarks embedding models.
 
 | Function                                                        | Lines   | Description                                                |
 | --------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
-| `main(mode, show_ttf, show_tps, verbose, target_model, config)` | 17-110  | Async main: fetches models, dispatches to display          |
+| `main(mode, show_ttft, show_tps, verbose, target_model, config)` | 17-110  | Async main: fetches models, dispatches to display          |
 | `build_parser(prog)`                                            | 113-145 | Builds `argparse.ArgumentParser` with all flags            |
 | `resolve_mode(args, is_tty, prompt_fn)`                         | 148-166 | Determines local/cloud/both from flags or interactive menu |
 | `main_entrypoint()`                                             | 169-201 | Synchronous entry point registered in `pyproject.toml`     |
@@ -82,7 +82,7 @@ Benchmarks embedding models.
 | `format_size(parameter_size, model_name)`                   | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)      |
 | `format_capabilities(caps)`                                 | 52-53   | Joins sorted capabilities list                          |
 | `format_float_or_na(val)`                                   | 56-59   | Formats float or returns `"n/a"`                        |
-| `build_table(title, show_ttf, show_tps, verbose, num_runs)` | 62-81   | Creates `rich.Table` with appropriate columns           |
+| `build_table(title, show_ttft, show_tps, verbose, num_runs)` | 62-81   | Creates `rich.Table` with appropriate columns           |
 | `_thresholds(values)`                                       | 112-119 | Computes 33rd/66th percentile boundaries                |
 | `_color(cell, thresholds, lower_is_better)`                 | 122-145 | Applies green/orange/red styling                        |
 | `_build_colored_table(...)`                                 | 148-182 | Rebuilds table with threshold-based coloring            |
@@ -95,10 +95,10 @@ Benchmarks embedding models.
 ```python
 @dataclass
 class BenchmarkResult:
-    ttf: float | None      # Average time-to-first-token
+    ttft: float | None     # Average time-to-first-token
     tps: float | None      # Average tokens-per-second
     error: str | None       # First error, if any
-    runs: list[dict]       # Per-run {"prompt", "ttf", "tps", "error"}
+    runs: list[dict]       # Per-run {"prompt", "ttft", "tps", "error"}
 ```
 
 Defined at `src/ometer/api.py:14-19`.
@@ -107,7 +107,7 @@ Defined at `src/ometer/api.py:14-19`.
 
 The order and visibility of columns depends on which flags are active:
 
-| Column       | Always | With `--ttf` | With `--tps` | With `--verbose` |
+| Column       | Always | With `--ttft` | With `--tps` | With `--verbose` |
 | ------------ | ------ | :----------: | :----------: | :--------------: |
 | Model        | Yes    |              |              |                  |
 | Size         | Yes    |              |              |                  |
@@ -115,6 +115,6 @@ The order and visibility of columns depends on which flags are active:
 | Quant        | Yes    |              |              |                  |
 | Capabilities | Yes    |              |              |                  |
 | TTFT1…TTFTn  |        |     Yes      |              |       Yes        |
-| TTFT         |        |     Yes      |              |                  |
+| TTFT          |        |     Yes      |              |                  |
 | TPS1…TPSn    |        |              |     Yes      |       Yes        |
 | TPS          |        |              |     Yes      |                  |

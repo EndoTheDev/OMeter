@@ -19,7 +19,7 @@ class TestBuildParser:
         assert args.local is False
         assert args.cloud is False
         assert args.model is None
-        assert args.ttf is False
+        assert args.ttft is False
         assert args.tps is False
         assert args.verbose is False
         assert args.runs is None
@@ -57,9 +57,9 @@ class TestBuildParser:
         assert args.local is True
         assert args.cloud is True
 
-    def test_ttf_flag(self):
-        args = self._parse("--ttf")
-        assert args.ttf is True
+    def test_ttft_flag(self):
+        args = self._parse("--ttft")
+        assert args.ttft is True
 
     def test_tps_flag(self):
         args = self._parse("--tps")
@@ -80,7 +80,7 @@ class TestResolveMode:
             local=False,
             cloud=False,
             model=None,
-            ttf=False,
+            ttft=False,
             tps=False,
             verbose=False,
             runs=None,

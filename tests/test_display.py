@@ -165,77 +165,77 @@ class TestColor:
 
 
 class TestColumnIndices:
-    def test_ttf_only(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=True, show_tps=False, verbose=False, num_runs=3
+    def test_ttft_only(self):
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=True, show_tps=False, verbose=False, num_runs=3
         )
-        assert ttf_idx == [5]
+        assert ttft_idx == [5]
         assert tps_idx == []
 
     def test_tps_only(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=False, show_tps=True, verbose=False, num_runs=3
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=False, show_tps=True, verbose=False, num_runs=3
         )
-        assert ttf_idx == []
+        assert ttft_idx == []
         assert tps_idx == [5]
 
     def test_both(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=True, show_tps=True, verbose=False, num_runs=3
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=True, show_tps=True, verbose=False, num_runs=3
         )
-        assert ttf_idx == [5]
+        assert ttft_idx == [5]
         assert tps_idx == [6]
 
-    def test_verbose_ttf(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=True, show_tps=False, verbose=True, num_runs=2
+    def test_verbose_ttft(self):
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=True, show_tps=False, verbose=True, num_runs=2
         )
-        assert ttf_idx == [5, 6, 7]
+        assert ttft_idx == [5, 6, 7]
         assert tps_idx == []
 
     def test_verbose_both(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=True, show_tps=True, verbose=True, num_runs=2
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=True, show_tps=True, verbose=True, num_runs=2
         )
-        assert ttf_idx == [5, 6, 7]
+        assert ttft_idx == [5, 6, 7]
         assert tps_idx == [8, 9, 10]
 
     def test_neither(self):
-        ttf_idx, tps_idx = _column_indices(
-            show_ttf=False, show_tps=False, verbose=False, num_runs=3
+        ttft_idx, tps_idx = _column_indices(
+            show_ttft=False, show_tps=False, verbose=False, num_runs=3
         )
-        assert ttf_idx == []
+        assert ttft_idx == []
         assert tps_idx == []
 
 
 class TestBuildTable:
     def test_basic_columns(self):
         table = build_table(
-            "Test", show_ttf=False, show_tps=False, verbose=False, num_runs=3
+            "Test", show_ttft=False, show_tps=False, verbose=False, num_runs=3
         )
         assert len(table.columns) == 5
 
-    def test_with_ttf(self):
+    def test_with_ttft(self):
         table = build_table(
-            "Test", show_ttf=True, show_tps=False, verbose=False, num_runs=3
+            "Test", show_ttft=True, show_tps=False, verbose=False, num_runs=3
         )
         assert len(table.columns) == 6
 
     def test_with_tps(self):
         table = build_table(
-            "Test", show_ttf=False, show_tps=True, verbose=False, num_runs=3
+            "Test", show_ttft=False, show_tps=True, verbose=False, num_runs=3
         )
         assert len(table.columns) == 6
 
     def test_with_both(self):
         table = build_table(
-            "Test", show_ttf=True, show_tps=True, verbose=False, num_runs=3
+            "Test", show_ttft=True, show_tps=True, verbose=False, num_runs=3
         )
         assert len(table.columns) == 7
 
     def test_verbose_both(self):
         table = build_table(
-            "Test", show_ttf=True, show_tps=True, verbose=True, num_runs=2
+            "Test", show_ttft=True, show_tps=True, verbose=True, num_runs=2
         )
         assert len(table.columns) == 5 + 2 + 1 + 2 + 1
 
@@ -252,18 +252,18 @@ class TestProcessSingleModel:
             "model_info": {"model.context_length": 8192},
         }
         benchmark = BenchmarkResult(
-            ttf=1.23,
+            ttft=1.23,
             tps=45.6,
             error=None,
             runs=[
-                {"prompt": "hi", "ttf": 1.23, "tps": 45.6, "error": None},
+                {"prompt": "hi", "ttft": 1.23, "tps": 45.6, "error": None},
             ],
         )
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=True,
+            show_ttft=True,
             show_tps=True,
             verbose=False,
             num_runs=1,
@@ -277,12 +277,12 @@ class TestProcessSingleModel:
     def test_no_benchmark(self):
         tag_model = {"name": "llama3", "details": {}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
-        benchmark = BenchmarkResult(ttf=None, tps=None, error=None, runs=[])
+        benchmark = BenchmarkResult(ttft=None, tps=None, error=None, runs=[])
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=False,
+            show_ttft=False,
             show_tps=False,
             verbose=False,
             num_runs=3,
@@ -291,23 +291,23 @@ class TestProcessSingleModel:
 
 
 class TestProcessSingleModelVerbose:
-    def test_verbose_ttf_with_error(self):
+    def test_verbose_ttft_with_error(self):
         tag_model = {"name": "llama3", "details": {"parameter_size": "8B"}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
         benchmark = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=None,
             error=None,
             runs=[
-                {"prompt": "p1", "ttf": 1.0, "tps": None, "error": "timeout"},
-                {"prompt": "p2", "ttf": None, "tps": None, "error": None},
+                {"prompt": "p1", "ttft": 1.0, "tps": None, "error": "timeout"},
+                {"prompt": "p2", "ttft": None, "tps": None, "error": None},
             ],
         )
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=True,
+            show_ttft=True,
             show_tps=False,
             verbose=True,
             num_runs=2,
@@ -319,19 +319,19 @@ class TestProcessSingleModelVerbose:
         tag_model = {"name": "llama3", "details": {"parameter_size": "8B"}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
         benchmark = BenchmarkResult(
-            ttf=None,
+            ttft=None,
             tps=50.0,
             error=None,
             runs=[
-                {"prompt": "p1", "ttf": None, "tps": 50.0, "error": None},
-                {"prompt": "p2", "ttf": None, "tps": None, "error": "fail"},
+                {"prompt": "p1", "ttft": None, "tps": 50.0, "error": None},
+                {"prompt": "p2", "ttft": None, "tps": None, "error": "fail"},
             ],
         )
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=False,
+            show_ttft=False,
             show_tps=True,
             verbose=True,
             num_runs=2,
@@ -343,19 +343,19 @@ class TestProcessSingleModelVerbose:
         tag_model = {"name": "llama3", "details": {"parameter_size": "8B"}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
         benchmark = BenchmarkResult(
-            ttf=1.5,
+            ttft=1.5,
             tps=40.0,
             error=None,
             runs=[
-                {"prompt": "p1", "ttf": 1.5, "tps": 40.0, "error": None},
-                {"prompt": "p2", "ttf": 2.0, "tps": 35.0, "error": None},
+                {"prompt": "p1", "ttft": 1.5, "tps": 40.0, "error": None},
+                {"prompt": "p2", "ttft": 2.0, "tps": 35.0, "error": None},
             ],
         )
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=True,
+            show_ttft=True,
             show_tps=True,
             verbose=True,
             num_runs=2,
@@ -366,18 +366,18 @@ class TestProcessSingleModelVerbose:
         tag_model = {"name": "llama3", "details": {}}
         show_data = {"details": {}, "capabilities": [], "model_info": {}}
         benchmark = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=30.0,
             error=None,
             runs=[
-                {"prompt": "p1", "ttf": 1.0, "tps": 30.0, "error": None},
+                {"prompt": "p1", "ttft": 1.0, "tps": 30.0, "error": None},
             ],
         )
         row = process_single_model(
             tag_model,
             show_data,
             benchmark,
-            show_ttf=True,
+            show_ttft=True,
             show_tps=True,
             verbose=True,
             num_runs=3,
@@ -403,38 +403,38 @@ class TestBuildColoredTable:
             )
         return rows
 
-    def test_ttf_only(self):
+    def test_ttft_only(self):
         rows = self._make_rows()
         table = _build_colored_table(
-            "Test", show_ttf=True, show_tps=False, verbose=False, num_runs=1, rows=rows
+            "Test", show_ttft=True, show_tps=False, verbose=False, num_runs=1, rows=rows
         )
         assert table is not None
 
     def test_tps_only(self):
         rows = self._make_rows()
         table = _build_colored_table(
-            "Test", show_ttf=False, show_tps=True, verbose=False, num_runs=1, rows=rows
+            "Test", show_ttft=False, show_tps=True, verbose=False, num_runs=1, rows=rows
         )
         assert table is not None
 
     def test_both(self):
         rows = self._make_rows()
         table = _build_colored_table(
-            "Test", show_ttf=True, show_tps=True, verbose=False, num_runs=1, rows=rows
+            "Test", show_ttft=True, show_tps=True, verbose=False, num_runs=1, rows=rows
         )
         assert table is not None
 
     def test_with_err_values(self):
         rows = [["model", "7B", "4096", "Q4_0", "completion", "err", "err"]]
         table = _build_colored_table(
-            "Test", show_ttf=True, show_tps=True, verbose=False, num_runs=1, rows=rows
+            "Test", show_ttft=True, show_tps=True, verbose=False, num_runs=1, rows=rows
         )
         assert table is not None
 
     def test_with_na_values(self):
         rows = [["model", "7B", "4096", "Q4_0", "completion", "n/a", "n/a"]]
         table = _build_colored_table(
-            "Test", show_ttf=True, show_tps=True, verbose=False, num_runs=1, rows=rows
+            "Test", show_ttft=True, show_tps=True, verbose=False, num_runs=1, rows=rows
         )
         assert table is not None
 
@@ -455,7 +455,7 @@ class TestBuildColoredTable:
             ]
         ]
         table = _build_colored_table(
-            "Test", show_ttf=True, show_tps=True, verbose=True, num_runs=2, rows=rows
+            "Test", show_ttft=True, show_tps=True, verbose=True, num_runs=2, rows=rows
         )
         assert table is not None
 
@@ -471,10 +471,10 @@ class TestBenchmarkModelTask:
         }
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
         bench_result = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=50.0,
             error=None,
-            runs=[{"prompt": "hi", "ttf": 1.0, "tps": 50.0, "error": None}],
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
         )
         with patch(
             "ometer.display.benchmark_model",
@@ -488,7 +488,7 @@ class TestBenchmarkModelTask:
                 AsyncMock(),
                 config,
                 "http://localhost:11434",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
@@ -503,7 +503,7 @@ class TestBenchmarkModelTask:
         model = {"name": "llama3"}
         err = RuntimeError("connection refused")
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
-        bench_result = BenchmarkResult(ttf=None, tps=None, error=None, runs=[])
+        bench_result = BenchmarkResult(ttft=None, tps=None, error=None, runs=[])
         with patch(
             "ometer.display.benchmark_model",
             new_callable=AsyncMock,
@@ -516,7 +516,7 @@ class TestBenchmarkModelTask:
                 AsyncMock(),
                 config,
                 "http://localhost:11434",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
@@ -537,7 +537,7 @@ class TestBenchmarkModelTask:
             AsyncMock(),
             config,
             "http://localhost:11434",
-            show_ttf=False,
+            show_ttft=False,
             show_tps=False,
             verbose=False,
             chat_headers=None,
@@ -552,7 +552,7 @@ class TestBenchmarkModelTask:
         show_data = {"capabilities": [], "details": {}, "model_info": {}}
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
         bench_result = BenchmarkResult(
-            ttf=None, tps=None, error="model not found", runs=[]
+            ttft=None, tps=None, error="model not found", runs=[]
         )
         with patch(
             "ometer.display.benchmark_model",
@@ -566,7 +566,7 @@ class TestBenchmarkModelTask:
                 AsyncMock(),
                 config,
                 "http://localhost:11434",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
@@ -602,7 +602,7 @@ class TestStreamTable:
                 "http://localhost:11434",
                 [model],
                 "Test Table",
-                show_ttf=False,
+                show_ttft=False,
                 show_tps=False,
                 verbose=False,
             )
@@ -620,10 +620,10 @@ class TestStreamTable:
             "model_info": {"model.context_length": 4096},
         }
         bench_result = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=50.0,
             error=None,
-            runs=[{"prompt": "hi", "ttf": 1.0, "tps": 50.0, "error": None}],
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
         )
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
         client = AsyncMock()
@@ -645,7 +645,7 @@ class TestStreamTable:
                 "http://localhost:11434",
                 [model],
                 "Test Table",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
             )
@@ -670,10 +670,10 @@ class TestStreamTable:
             "model_info": {"model.context_length": 4096},
         }
         bench_result = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=50.0,
             error=None,
-            runs=[{"prompt": "hi", "ttf": 1.0, "tps": 50.0, "error": None}],
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
         )
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 2)
         client = AsyncMock()
@@ -695,7 +695,7 @@ class TestStreamTable:
                 "http://localhost:11434",
                 models,
                 "Test Table",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
             )
@@ -705,10 +705,10 @@ class TestStreamTable:
         model = {"name": "llama3", "details": {}, "modified_at": "2024-01-01T00:00:00Z"}
         err = RuntimeError("connection refused")
         bench_result = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=50.0,
             error=None,
-            runs=[{"prompt": "hi", "ttf": 1.0, "tps": 50.0, "error": None}],
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
         )
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
         client = AsyncMock()
@@ -730,7 +730,7 @@ class TestStreamTable:
                 "http://localhost:11434",
                 [model],
                 "Test Table",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
             )
@@ -740,10 +740,10 @@ class TestStreamTable:
         model = {"name": "llama3", "details": {}, "modified_at": "2024-01-01T00:00:00Z"}
         show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
         bench_result = BenchmarkResult(
-            ttf=None,
+            ttft=None,
             tps=None,
             error="timeout",
-            runs=[{"prompt": "hi", "ttf": None, "tps": None, "error": "timeout"}],
+            runs=[{"prompt": "hi", "ttft": None, "tps": None, "error": "timeout"}],
         )
         config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
         client = AsyncMock()
@@ -765,7 +765,7 @@ class TestStreamTable:
                 "http://localhost:11434",
                 [model],
                 "Test Table",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
             )
@@ -780,7 +780,7 @@ class TestStreamTable:
             "http://localhost:11434",
             [],
             "Test Table",
-            show_ttf=False,
+            show_ttft=False,
             show_tps=False,
             verbose=False,
         )
@@ -798,10 +798,10 @@ class TestStreamTable:
             "model_info": {"model.context_length": 4096},
         }
         bench_result = BenchmarkResult(
-            ttf=1.0,
+            ttft=1.0,
             tps=50.0,
             error=None,
-            runs=[{"prompt": "hi", "ttf": 1.0, "tps": 50.0, "error": None}],
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
         )
         config = Config("http://localhost:11434", "https://ollama.com", "key123", 1, 1)
         client = AsyncMock()
@@ -824,7 +824,7 @@ class TestStreamTable:
                 "https://ollama.com",
                 [model],
                 "Cloud",
-                show_ttf=True,
+                show_ttft=True,
                 show_tps=True,
                 verbose=False,
                 chat_headers=headers,
