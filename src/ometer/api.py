@@ -127,7 +127,7 @@ async def benchmark_chat_single_run(
     else:
         ttf = None
     duration = eval_duration or total_duration
-    tps = eval_count / (duration / 1e9) if duration else 0.0
+    tps = eval_count / (duration / 1e9) if duration else None
 
     return {"ttf": ttf, "tps": tps, "error": error}
 
@@ -164,7 +164,7 @@ async def benchmark_embed_single_run(
         error = str(e)
 
     ttf = time.perf_counter() - start
-    tps = prompt_eval_count / (total_duration / 1e9) if total_duration else 0.0
+    tps = prompt_eval_count / (total_duration / 1e9) if total_duration else None
 
     return {"ttf": ttf, "tps": tps, "error": error}
 
@@ -180,7 +180,7 @@ async def benchmark_model(
     runs: list[dict[str, Any]] = []
     errors: list[str] = []
 
-    use_embed = is_embedding_model(show_data) and base_url == config.local_base_url
+    use_embed = is_embedding_model(show_data) and base_url.rstrip("/") == config.local_base_url.rstrip("/")
 
     for prompt in config.bench_prompts_active:
         if use_embed:
@@ -201,7 +201,10 @@ async def benchmark_model(
         avg_ttf: float | None = (
             sum(r["ttf"] for r in ttf_runs) / len(ttf_runs) if ttf_runs else None
         )
-        avg_tps = sum(r["tps"] for r in good_runs) / len(good_runs)
+        avg_tps = None
+        tps_runs = [r for r in good_runs if r["tps"] is not None]
+        if tps_runs:
+            avg_tps = sum(r["tps"] for r in tps_runs) / len(tps_runs)
         first_error = errors[0] if errors else None
         return BenchmarkResult(ttf=avg_ttf, tps=avg_tps, error=first_error, runs=runs)
 
