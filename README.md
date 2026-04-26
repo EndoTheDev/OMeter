@@ -30,7 +30,7 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 </details>
 
 <details name="screenshots">
-<summary><strong>Benchmark with per-run breakdown</strong> — <code>ometer --local --ttftt --tps --verbose --runs 2 --parallel 1</code></summary>
+<summary><strong>Benchmark with per-run breakdown</strong> — <code>ometer --local --ttft --tps --verbose --runs 2 --parallel 1</code></summary>
 <img src="assets/local-ttft-tps-verbose-runs-parallel.png" alt="Benchmark with breakdown">
 </details>
 
@@ -55,7 +55,7 @@ This installs `ometer` and `ollamameter` globally, so you can run them from anyw
 **Update:**
 
 ```bash
-uv tool upgrade ometer
+uv tool install --upgrade ometer
 ```
 
 **Uninstall:**

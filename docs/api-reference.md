@@ -54,7 +54,7 @@ Benchmarks embedding models.
 | `is_embedding_model(show_data)`                                                       | 54-55   | `bool`            | Checks if `"embedding"` is in capabilities       |
 | `benchmark_chat_single_run(client, base_url, model_name, prompt, headers, show_data)` | 58-132  | `dict`            | Single benchmark run via `/api/chat`             |
 | `benchmark_embed_single_run(client, base_url, model_name, prompt, headers)`           | 135-169 | `dict`            | Single benchmark run via `/api/embed`            |
-| `benchmark_model(client, config, base_url, model_name, show_data, headers)`           | 172-213 | `BenchmarkResult` | Runs all prompts, averages results               |
+| `benchmark_model(client, config, base_url, model_name, show_data, headers)`           | 172-217 | `BenchmarkResult` | Runs all prompts, averages results               |
 | `sort_by_modified(models)`                                                            | 22-32   | `list[dict]`      | Sorts model list by `modified_at` (newest first) |
 
 ### config.py
@@ -67,28 +67,28 @@ Benchmarks embedding models.
 
 ### cli.py
 
-| Function                                                        | Lines   | Description                                                |
-| --------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
-| `main(mode, show_ttft, show_tps, verbose, target_model, config)` | 17-110  | Async main: fetches models, dispatches to display          |
-| `build_parser(prog)`                                            | 113-145 | Builds `argparse.ArgumentParser` with all flags            |
-| `resolve_mode(args, is_tty, prompt_fn)`                         | 148-166 | Determines local/cloud/both from flags or interactive menu |
-| `main_entrypoint()`                                             | 169-201 | Synchronous entry point registered in `pyproject.toml`     |
+| Function                                                         | Lines   | Description                                                |
+| ---------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `main(mode, show_ttft, show_tps, verbose, target_model, config)` | 17-111  | Async main: fetches models, dispatches to display          |
+| `build_parser(prog)`                                             | 113-145 | Builds `argparse.ArgumentParser` with all flags            |
+| `resolve_mode(args, is_tty, prompt_fn)`                          | 148-166 | Determines local/cloud/both from flags or interactive menu |
+| `main_entrypoint()`                                              | 169-201 | Synchronous entry point registered in `pyproject.toml`     |
 
 ### display.py
 
-| Function                                                    | Lines   | Description                                             |
-| ----------------------------------------------------------- | ------- | ------------------------------------------------------- |
-| `extract_context_length(model_info)`                        | 20-24   | Finds `*.context_length` key in model info              |
-| `format_size(parameter_size, model_name)`                   | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)      |
-| `format_capabilities(caps)`                                 | 52-53   | Joins sorted capabilities list                          |
-| `format_float_or_na(val)`                                   | 56-59   | Formats float or returns `"n/a"`                        |
+| Function                                                     | Lines   | Description                                             |
+| ------------------------------------------------------------ | ------- | ------------------------------------------------------- |
+| `extract_context_length(model_info)`                         | 20-24   | Finds `*.context_length` key in model info              |
+| `format_size(parameter_size, model_name)`                    | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)      |
+| `format_capabilities(caps)`                                  | 52-53   | Joins sorted capabilities list                          |
+| `format_float_or_na(val)`                                    | 56-59   | Formats float or returns `"n/a"`                        |
 | `build_table(title, show_ttft, show_tps, verbose, num_runs)` | 62-81   | Creates `rich.Table` with appropriate columns           |
-| `_thresholds(values)`                                       | 112-119 | Computes 33rd/66th percentile boundaries                |
-| `_color(cell, thresholds, lower_is_better)`                 | 122-145 | Applies green/orange/red styling                        |
-| `_build_colored_table(...)`                                 | 148-182 | Rebuilds table with threshold-based coloring            |
-| `process_single_model(...)`                                 | 185-241 | Merges tag + show data + benchmark into a row           |
-| `_benchmark_model_task(...)`                                | 244-276 | Async task: fetch show data, run benchmark, produce row |
-| `stream_table(...)`                                         | 279-369 | Orchestrates live table rendering with `asyncio.wait`   |
+| `_thresholds(values)`                                        | 112-119 | Computes 33rd/66th percentile boundaries                |
+| `_color(cell, thresholds, lower_is_better)`                  | 122-145 | Applies green/orange/red styling                        |
+| `_build_colored_table(...)`                                  | 148-182 | Rebuilds table with threshold-based coloring            |
+| `process_single_model(...)`                                  | 185-241 | Merges tag + show data + benchmark into a row           |
+| `_benchmark_model_task(...)`                                 | 244-276 | Async task: fetch show data, run benchmark, produce row |
+| `stream_table(...)`                                          | 279-369 | Orchestrates live table rendering with `asyncio.wait`   |
 
 ## BenchmarkResult Dataclass
 
@@ -108,13 +108,13 @@ Defined at `src/ometer/api.py:14-19`.
 The order and visibility of columns depends on which flags are active:
 
 | Column       | Always | With `--ttft` | With `--tps` | With `--verbose` |
-| ------------ | ------ | :----------: | :----------: | :--------------: |
-| Model        | Yes    |              |              |                  |
-| Size         | Yes    |              |              |                  |
-| Context      | Yes    |              |              |                  |
-| Quant        | Yes    |              |              |                  |
-| Capabilities | Yes    |              |              |                  |
-| TTFT1…TTFTn  |        |     Yes      |              |       Yes        |
-| TTFT          |        |     Yes      |              |                  |
-| TPS1…TPSn    |        |              |     Yes      |       Yes        |
-| TPS          |        |              |     Yes      |                  |
+| ------------ | ------ | :-----------: | :----------: | :--------------: |
+| Model        | Yes    |               |              |                  |
+| Size         | Yes    |               |              |                  |
+| Context      | Yes    |               |              |                  |
+| Quant        | Yes    |               |              |                  |
+| Capabilities | Yes    |               |              |                  |
+| TTFT1…TTFTn  |        |      Yes      |              |       Yes        |
+| TTFT         |        |      Yes      |              |                  |
+| TPS1…TPSn    |        |               |     Yes      |       Yes        |
+| TPS          |        |               |     Yes      |                  |

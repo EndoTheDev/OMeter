@@ -8,7 +8,7 @@ The benchmarking pipeline is an asynchronous workflow that discovers models, mea
 1. Discovery    ──►  fetch tags from local and/or cloud endpoints
 2. Inspection   ──►  fetch model metadata via /api/show (size, quant, capabilities)
 3. Dispatch     ──►  schedule benchmark tasks with asyncio.Semaphore
-4. Measurement  ──►  stream responses, compute TTF and TPS per run
+4. Measurement  ──►  stream responses, compute TTFT and TPS per run
 5. Aggregation  ──►  average results across runs, compute percentile thresholds
 6. Rendering    ──►  build colorized rich.Table, display via Live context
 ```
@@ -115,16 +115,16 @@ When an embedding model is detected on a **local** endpoint, the benchmark uses 
 
 ```txt
 benchmark_model()
-     │
-     ├─ for each prompt in config.bench_prompts_active:
-     │      │
-     │      ├─ is_embedding_model?  ──►  benchmark_embed_single_run()
-     │      │                             POST /api/embed
-│      │                             └─ returns {ttft, tps, error}
-│      │
-│      └─ else  ──►  benchmark_chat_single_run()
-│                      POST /api/chat (streamed)
-│                      └─ returns {ttft, tps, error}
-     │
-      └─ averages successful runs ──►  BenchmarkResult(ttft, tps, error, runs)
+│
+├─ for each prompt in config.bench_prompts_active:
+│   │
+│   ├─ is_embedding_model?  ──►  benchmark_embed_single_run()
+│   │                             POST /api/embed
+│   │                              └─ returns {ttft, tps, error}
+│   │
+│   └─ else  ──►  benchmark_chat_single_run()
+│                  POST /api/chat (streamed)
+│                   └─ returns {ttft, tps, error}
+│
+└─ averages successful runs ──►  BenchmarkResult(ttft, tps, error, runs)
 ```

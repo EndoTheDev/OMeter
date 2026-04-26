@@ -12,7 +12,7 @@ cd OllamaMeter
 # Create virtual environment and install dependencies
 uv sync
 
-# Install as an editable tool
+# Install as a tool
 uv tool install .
 ```
 
