@@ -16,6 +16,7 @@ def _make_row(
     tps: float | None = 45.6,
     error: str | None = None,
     runs: list[dict] | None = None,
+    modified_at: str = "2024-01-01T00:00:00Z",
 ) -> ExportRow:
     if runs is None:
         runs = [{"prompt": "hi", "ttft": 1.23, "tps": 45.6, "error": None}]
@@ -29,6 +30,7 @@ def _make_row(
         tps=tps,
         error=error,
         runs=runs,
+        modified_at=modified_at,
     )
 
 

@@ -1,10 +1,10 @@
 # API Reference
 
-This document covers the Ollama API endpoints used by OllamaMeter and the internal functions that interact with them.
+This document covers the Ollama API endpoints used by OMeter and the internal functions that interact with them.
 
 ## Ollama API Endpoints
 
-OllamaMeter communicates with Ollama instances over HTTP using `httpx.AsyncClient`.
+OMeter communicates with Ollama instances over HTTP using `httpx.AsyncClient`.
 
 ### GET /api/tags
 
@@ -67,30 +67,36 @@ Benchmarks embedding models.
 
 ### cli.py
 
-| Function                                                                                   | Lines   | Description                                                |
-| ------------------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------- |
-| `main(mode, show_ttft, show_tps, verbose, target_models, config, export_fmt, export_path)` | 19-140  | Async main: fetches models, dispatches to display/export   |
-| `match_model(model_name, target)`                                                          | 143-152 | Exact or family-prefix model name matching                 |
-| `build_parser(prog)`                                                                       | 155-211 | Builds `argparse.ArgumentParser` with all flags            |
-| `resolve_mode(args, is_tty, prompt_fn)`                                                    | 214-232 | Determines local/cloud/both from flags or interactive menu |
-| `main_entrypoint()`                                                                        | 235-287 | Synchronous entry point registered in `pyproject.toml`     |
+| Function                                                                                                  | Lines   | Description                                                |
+| --------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `main(mode, show_ttft, show_tps, verbose, target_models, config, export_fmt, export_path, sort, reverse)` | 19-140  | Async main: fetches models, dispatches to display/export   |
+| `match_model(model_name, target)`                                                                         | 143-152 | Exact or family-prefix model name matching                 |
+| `build_parser(prog)`                                                                                      | 155-211 | Builds `argparse.ArgumentParser` with all flags            |
+| `resolve_mode(args, is_tty, prompt_fn)`                                                                   | 214-232 | Determines local/cloud/both from flags or interactive menu |
+| `main_entrypoint()`                                                                                       | 235-287 | Synchronous entry point registered in `pyproject.toml`     |
 
 ### display.py
 
 | Function                                                                     | Lines   | Description                                                 |
 | ---------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
-| `extract_context_length(model_info)`                                         | 20-24   | Finds `*.context_length` key in model info                  |
-| `format_size(parameter_size, model_name)`                                    | 27-49   | Formats parameter count (e.g. `7000000000` → `7B`)          |
-| `format_capabilities(caps)`                                                  | 52-53   | Joins sorted capabilities list                              |
-| `format_float_or_na(val)`                                                    | 56-59   | Formats float or returns `"n/a"`                            |
-| `build_table(title, show_ttft, show_tps, verbose, num_runs)`                 | 62-81   | Creates `rich.Table` with appropriate columns               |
-| `_thresholds(values)`                                                        | 112-119 | Computes 33rd/66th percentile boundaries                    |
-| `_color(cell, thresholds, lower_is_better)`                                  | 122-145 | Applies green/orange/red styling                            |
-| `_build_colored_table(...)`                                                  | 148-182 | Rebuilds table with threshold-based coloring                |
-| `process_single_model(..., export_only=False)`                               | 186-254 | Merges tag + show data + benchmark into row and ExportRow   |
-| `_benchmark_model_task(..., export_only=False)`                              | 257-296 | Async task: fetch show data, run benchmark, produce row     |
-| `_collect_pending(pending, completed_rows, completed_exports, bench_errors)` | 299-309 | Awaits next completed task, collects results into dicts     |
-| `stream_table(..., export_only=False)`                                       | 312-430 | Orchestrates live table rendering or export-only collection |
+| `SortSpec.parse(raw, reverse=False)`                                         | 34-45   | Parses sort string into structured field + direction        |
+| `_size_value(size_str)`                                                      | 53-61   | Extracts numeric parameter value from size string           |
+| `_context_value(context_str)`                                                | 64-69   | Parses context length string to integer                     |
+| `_modified_value(modified_str)`                                              | 71-76   | Parses ISO date string to datetime                          |
+| `_sort_key(spec, export)`                                                    | 79-90   | Returns sort key for a single ExportRow                     |
+| `sort_results(rows, exports, spec)`                                          | 93-103  | Sorts paired rows and exports in-place                      |
+| `extract_context_length(model_info)`                                         | 107-110 | Finds `*.context_length` key in model info                  |
+| `format_size(parameter_size, model_name)`                                    | 114-137 | Formats parameter count (e.g. `7000000000` → `7B`)          |
+| `format_capabilities(caps)`                                                  | 140-141 | Joins sorted capabilities list                              |
+| `format_float_or_na(val)`                                                    | 144-147 | Formats float or returns `"n/a"`                            |
+| `build_table(title, show_ttft, show_tps, verbose, num_runs)`                 | 150-169 | Creates `rich.Table` with appropriate columns               |
+| `_thresholds(values)`                                                        | 200-207 | Computes 33rd/66th percentile boundaries                    |
+| `_color(cell, thresholds, lower_is_better)`                                  | 210-233 | Applies green/orange/red styling                            |
+| `_build_colored_table(...)`                                                  | 236-271 | Rebuilds table with threshold-based coloring                |
+| `process_single_model(..., export_only=False)`                               | 275-343 | Merges tag + show data + benchmark into row and ExportRow   |
+| `_benchmark_model_task(..., export_only=False)`                              | 346-385 | Async task: fetch show data, run benchmark, produce row     |
+| `_collect_pending(pending, completed_rows, completed_exports, bench_errors)` | 388-398 | Awaits next completed task, collects results into dicts     |
+| `stream_table(..., export_only=False)`                                       | 401-537 | Orchestrates live table rendering or export-only collection |
 
 ### export.py
 
@@ -125,11 +131,12 @@ class ExportRow:
     capabilities: str       # Comma-separated capabilities
     ttft: float | None      # Average time-to-first-token
     tps: float | None       # Average tokens-per-second
-    error: str | None        # First error, if any
-    runs: list[dict]         # Per-run {"prompt", "ttft", "tps", "error"}
+    error: str | None       # First error, if any
+    runs: list[dict]        # Per-run {"prompt", "ttft", "tps", "error"}
+    modified_at: str        # ISO timestamp from /api/tags
 ```
 
-Defined at `src/ometer/export.py:10-20`.
+Defined at `src/ometer/export.py:10-21`.
 
 ## Table Column Layout
 

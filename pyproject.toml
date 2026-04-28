@@ -1,7 +1,7 @@
 [project]
 name = "ometer"
-version = "0.1.0"
-description = "OllamaMeter — list, benchmark, and compare Ollama models"
+version = "0.2.0"
+description = "OMeter — list, benchmark, and compare Ollama models"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -17,11 +17,10 @@ dependencies = [
 
 [project.scripts]
 ometer = "ometer.cli:main_entrypoint"
-ollamameter = "ometer.cli:main_entrypoint"
 
 [project.urls]
-Homepage = "https://github.com/EndoTheDev/OllamaMeter"
-Repository = "https://github.com/EndoTheDev/OllamaMeter"
+Homepage = "https://github.com/EndoTheDev/OMeter"
+Repository = "https://github.com/EndoTheDev/OMeter"
 
 [build-system]
 requires = ["hatchling"]

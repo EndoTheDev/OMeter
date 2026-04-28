@@ -18,8 +18,8 @@ class TestLoadEnv:
             "OLLAMA_LOCAL_BASE_URL",
             "OLLAMA_CLOUD_BASE_URL",
             "OLLAMA_CLOUD_API_KEY",
-            "OLLAMAMETER_RUNS",
-            "OLLAMAMETER_PARALLEL",
+            "OMETER_RUNS",
+            "OMETER_PARALLEL",
         ):
             monkeypatch.delenv(key, raising=False)
         _load_env()
@@ -36,8 +36,8 @@ class TestLoadEnv:
             "OLLAMA_LOCAL_BASE_URL",
             "OLLAMA_CLOUD_BASE_URL",
             "OLLAMA_CLOUD_API_KEY",
-            "OLLAMAMETER_RUNS",
-            "OLLAMAMETER_PARALLEL",
+            "OMETER_RUNS",
+            "OMETER_PARALLEL",
         ):
             monkeypatch.delenv(key, raising=False)
         _load_env()
@@ -48,19 +48,19 @@ class TestLoadEnv:
         config_dir = home / ".config" / "ometer"
         config_dir.mkdir(parents=True)
         env_file = config_dir / ".env"
-        env_file.write_text("OLLAMAMETER_RUNS=1\n")
+        env_file.write_text("OMETER_RUNS=1\n")
         monkeypatch.setattr(Path, "home", lambda: home)
         monkeypatch.setattr(Path, "cwd", lambda: Path("/nonexistent-cwd"))
         for key in (
             "OLLAMA_LOCAL_BASE_URL",
             "OLLAMA_CLOUD_BASE_URL",
             "OLLAMA_CLOUD_API_KEY",
-            "OLLAMAMETER_RUNS",
-            "OLLAMAMETER_PARALLEL",
+            "OMETER_RUNS",
+            "OMETER_PARALLEL",
         ):
             monkeypatch.delenv(key, raising=False)
         _load_env()
-        assert os.getenv("OLLAMAMETER_RUNS") == "1"
+        assert os.getenv("OMETER_RUNS") == "1"
 
     def test_skips_missing_paths(self, monkeypatch):
         monkeypatch.setattr(Path, "cwd", lambda: Path("/nonexistent-cwd-xyz"))
@@ -69,8 +69,8 @@ class TestLoadEnv:
             "OLLAMA_LOCAL_BASE_URL",
             "OLLAMA_CLOUD_BASE_URL",
             "OLLAMA_CLOUD_API_KEY",
-            "OLLAMAMETER_RUNS",
-            "OLLAMAMETER_PARALLEL",
+            "OMETER_RUNS",
+            "OMETER_PARALLEL",
         ):
             monkeypatch.delenv(key, raising=False)
         _load_env()
@@ -130,8 +130,8 @@ class TestConfigFromEnv:
         "OLLAMA_LOCAL_BASE_URL",
         "OLLAMA_CLOUD_BASE_URL",
         "OLLAMA_CLOUD_API_KEY",
-        "OLLAMAMETER_RUNS",
-        "OLLAMAMETER_PARALLEL",
+        "OMETER_RUNS",
+        "OMETER_PARALLEL",
     )
 
     @pytest.fixture()
@@ -153,8 +153,8 @@ class TestConfigFromEnv:
         monkeypatch.setenv("OLLAMA_LOCAL_BASE_URL", "http://host:1234")
         monkeypatch.setenv("OLLAMA_CLOUD_BASE_URL", "https://cloud.example.com")
         monkeypatch.setenv("OLLAMA_CLOUD_API_KEY", "secret")
-        monkeypatch.setenv("OLLAMAMETER_RUNS", "2")
-        monkeypatch.setenv("OLLAMAMETER_PARALLEL", "5")
+        monkeypatch.setenv("OMETER_RUNS", "2")
+        monkeypatch.setenv("OMETER_PARALLEL", "5")
         cfg = Config.from_env()
         assert cfg.local_base_url == "http://host:1234"
         assert cfg.cloud_base_url == "https://cloud.example.com"
@@ -163,18 +163,18 @@ class TestConfigFromEnv:
         assert cfg.num_parallel == 5
 
     def test_from_env_invalid_runs_falls_back(self, clean_env, monkeypatch):
-        monkeypatch.setenv("OLLAMAMETER_RUNS", "abc")
+        monkeypatch.setenv("OMETER_RUNS", "abc")
         cfg = Config.from_env()
         assert cfg.num_runs == 3
 
     def test_from_env_invalid_parallel_falls_back(self, clean_env, monkeypatch):
-        monkeypatch.setenv("OLLAMAMETER_PARALLEL", "xyz")
+        monkeypatch.setenv("OMETER_PARALLEL", "xyz")
         cfg = Config.from_env()
         assert cfg.num_parallel == 1
 
     def test_from_env_overrides_with_params(self, clean_env, monkeypatch):
-        monkeypatch.setenv("OLLAMAMETER_RUNS", "3")
-        monkeypatch.setenv("OLLAMAMETER_PARALLEL", "1")
+        monkeypatch.setenv("OMETER_RUNS", "3")
+        monkeypatch.setenv("OMETER_PARALLEL", "1")
         cfg = Config.from_env(runs=1, parallel=4)
         assert cfg.num_runs == 1
         assert cfg.num_parallel == 4

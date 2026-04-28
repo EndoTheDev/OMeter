@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from ometer.cli import build_parser, main, match_model, resolve_mode
+from ometer.cli import build_parser, main, main_entrypoint, match_model, resolve_mode
 from ometer.config import Config
 from ometer.export import ExportRow
 
@@ -77,6 +77,31 @@ class TestBuildParser:
     def test_model_flag_multiple(self):
         args = self._parse("--model", "llama3", "mistral")
         assert args.model == ["llama3", "mistral"]
+
+    def test_sort_flag(self):
+        args = self._parse("--sort", "name")
+        assert args.sort == "name"
+        assert args.reverse is False
+
+    def test_reverse_flag(self):
+        args = self._parse("--reverse")
+        assert args.reverse is True
+        assert args.sort is None
+
+    def test_sort_and_reverse_combined(self):
+        args = self._parse("--sort", "ttft", "--reverse")
+        assert args.sort == "ttft"
+        assert args.reverse is True
+
+    def test_reverse_without_sort_rejected(self):
+        import sys
+        old_argv = sys.argv
+        try:
+            sys.argv = ["ometer", "--reverse"]
+            with pytest.raises(SystemExit):
+                main_entrypoint()
+        finally:
+            sys.argv = old_argv
 
 
 class TestResolveMode:

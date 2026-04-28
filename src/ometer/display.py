@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import re
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -16,6 +18,90 @@ from ometer.config import Config
 from ometer.export import ExportRow
 
 console = Console()
+
+
+SORT_FIELDS: dict[str, bool] = {
+    "name": True,
+    "modified": False,
+    "ttft": True,
+    "tps": False,
+    "size": False,
+    "ctx": False,
+}
+
+
+@dataclass(frozen=True)
+class SortSpec:
+    field: str
+    ascending: bool
+
+    @classmethod
+    def parse(cls, raw: str | None, reverse: bool = False) -> SortSpec | None:
+        if raw is None:
+            return None
+        field = raw.strip()
+        if field not in SORT_FIELDS:
+            raise ValueError(
+                f"Unknown sort field '{field}'. "
+                f"Expected: {', '.join(SORT_FIELDS)}"
+            )
+        natural_asc = SORT_FIELDS[field]
+        ascending = not natural_asc if reverse else natural_asc
+        return cls(field=field, ascending=ascending)
+
+
+def _size_value(size_str: str) -> float:
+    m = re.match(r"(\d+(?:\.\d+)?)\s*([BKMGT])", size_str, re.IGNORECASE)
+    if m:
+        multipliers = {"B": 1e9, "K": 1e3, "M": 1e6, "G": 1e9, "T": 1e12}
+        return float(m.group(1)) * multipliers.get(m.group(2).upper(), 1)
+    try:
+        return float(size_str)
+    except ValueError:
+        return 0.0
+
+
+def _context_value(context_str: str) -> int:
+    try:
+        return int(context_str)
+    except ValueError:
+        return 0
+
+
+def _modified_value(modified_str: str) -> datetime:
+    iso = modified_str.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(iso)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _sort_key(spec: SortSpec, export: ExportRow) -> Any:
+    if spec.field == "modified":
+        return _modified_value(export.modified_at)
+    if spec.field == "size":
+        return _size_value(export.size)
+    if spec.field == "ctx":
+        return _context_value(export.context)
+    if spec.field == "ttft":
+        return export.ttft if export.ttft is not None else float("inf")
+    if spec.field == "tps":
+        return export.tps if export.tps is not None else float("-inf")
+    return export.model.lower()
+
+
+def sort_results(
+    rows: list[list[str]],
+    exports: list[ExportRow],
+    spec: SortSpec | None,
+) -> tuple[list[list[str]], list[ExportRow]]:
+    if spec is None:
+        return rows, exports
+    paired = sorted(
+        zip(rows, exports), key=lambda pair: _sort_key(spec, pair[1]), reverse=not spec.ascending
+    )
+    new_rows, new_exports = zip(*paired) if paired else ([], [])
+    return list(new_rows), list(new_exports)
 
 
 def extract_context_length(model_info: dict[str, Any]) -> int:
@@ -218,6 +304,7 @@ def process_single_model(
         tps=benchmark.tps,
         error=benchmark.error,
         runs=benchmark.runs,
+        modified_at=tag_model.get("modified_at", ""),
     )
 
     if export_only:
@@ -331,6 +418,7 @@ async def stream_table(
     verbose: bool,
     chat_headers: dict[str, str] | None = None,
     export_only: bool = False,
+    sort_spec: SortSpec | None = None,
 ) -> list[ExportRow]:
     table = build_table(title, show_ttft, show_tps, verbose, config.num_runs)
 
@@ -414,6 +502,9 @@ async def stream_table(
                     pending, completed_rows, completed_exports, bench_errors
                 )
                 _process_completed()
+        ordered_rows, ordered_exports = sort_results(
+            ordered_rows, ordered_exports, sort_spec
+        )
     else:
         with Live(live_renderable, console=console, refresh_per_second=4) as live:
             while pending:
@@ -426,10 +517,25 @@ async def stream_table(
                     live.update(Group(table, spinner))
                 else:
                     live.update(table)
-            if ordered_rows and (show_ttft or show_tps):
-                final_table = _build_colored_table(
-                    title, show_ttft, show_tps, verbose, config.num_runs, ordered_rows
-                )
+            ordered_rows, ordered_exports = sort_results(
+                ordered_rows, ordered_exports, sort_spec
+            )
+            if ordered_rows:
+                if show_ttft or show_tps:
+                    final_table = _build_colored_table(
+                        title,
+                        show_ttft,
+                        show_tps,
+                        verbose,
+                        config.num_runs,
+                        ordered_rows,
+                    )
+                else:
+                    final_table = build_table(
+                        title, show_ttft, show_tps, verbose, config.num_runs
+                    )
+                    for row in ordered_rows:
+                        final_table.add_row(*row)
                 live.update(final_table)
 
     for err in bench_errors:

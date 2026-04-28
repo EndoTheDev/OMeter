@@ -45,13 +45,13 @@ class Config:
         cloud_base_url = os.getenv("OLLAMA_CLOUD_BASE_URL", "https://ollama.com")
         cloud_api_key = os.getenv("OLLAMA_CLOUD_API_KEY", "")
 
-        num_runs_raw = os.getenv("OLLAMAMETER_RUNS", "3").strip()
+        num_runs_raw = os.getenv("OMETER_RUNS", "3").strip()
         try:
             num_runs = int(num_runs_raw)
         except ValueError:
             num_runs = 3
 
-        num_parallel_raw = os.getenv("OLLAMAMETER_PARALLEL", "1").strip()
+        num_parallel_raw = os.getenv("OMETER_PARALLEL", "1").strip()
         try:
             num_parallel = int(num_parallel_raw)
         except ValueError:

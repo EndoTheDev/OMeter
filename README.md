@@ -1,4 +1,4 @@
-# OllamaMeter
+# OMeter
 
 <p align="left">
   <img src="https://img.shields.io/badge/python-3.14+-blue.svg?style=flat-square" alt="Python 3.14+">
@@ -10,7 +10,8 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 ## Features
 
 - 📋 **List models** from local and cloud Ollama endpoints
-- 📊 **Rich tables** with sorting by modification date (newest first)
+- 📊 **Rich tables** with sorting by name, size, context length, modification date, TTFT, or TPS
+- 🔃 **Reverse sort** with `--reverse`
 - ⏱️ **Benchmark** time-to-first-token (TTFT) and tokens-per-second (TPS)
 - 🔍 **Model filtering** by exact name or family match (e.g. `llama3` matches `llama3:latest`)
 - 📤 **Export results** to JSON or CSV (stdout or file)
@@ -48,10 +49,10 @@ uv tool install .
 Or install directly from GitHub:
 
 ```bash
-uv tool install git+https://github.com/EndoTheDev/OllamaMeter.git
+uv tool install git+https://github.com/EndoTheDev/OMeter.git
 ```
 
-This installs `ometer` and `ollamameter` globally, so you can run them from anywhere.
+This installs `ometer` and `ometer` globally, so you can run them from anywhere.
 
 **Update:**
 
@@ -141,6 +142,34 @@ ometer --model llama3 --ttft --tps
 ometer --local --model llama3.2:3b llama3.3:8b --ttft --tps
 ```
 
+Sort results by **model size** (largest first) or **name** (A–Z):
+
+```bash
+ometer --cloud --sort size
+ometer --cloud --sort name
+```
+
+Sort by **context length** (largest first) or **modification date** (newest first):
+
+```bash
+ometer --cloud --sort ctx
+ometer --local --sort modified
+```
+
+Sort by **benchmark metrics** — TTFT (lowest/best first) and TPS (highest/best first):
+
+```bash
+ometer --cloud --ttft --tps --sort ttft
+ometer --cloud --ttft --tps --sort tps
+```
+
+**Reverse** any sort order (worst first, Z–A, oldest first):
+
+```bash
+ometer --cloud --sort name --reverse
+ometer --cloud --ttft --tps --sort tps --reverse
+```
+
 Export results as **JSON** (to stdout or a file):
 
 ```bash
@@ -163,7 +192,7 @@ ometer --help
 
 ## Environment Variables
 
-OllamaMeter looks for a `.env` file in this order, using the **first one found**:
+OMeter looks for a `.env` file in this order, using the **first one found**:
 
 1. **`./.env`** — current working directory (project-specific)
 2. **`~/.env`** — home directory (global fallback)
@@ -179,16 +208,16 @@ OLLAMA_CLOUD_API_KEY=your_api_key_here
 OLLAMA_LOCAL_BASE_URL=http://localhost:11434
 
 # Number of benchmark prompts per model (1–3, default 3)
-OLLAMAMETER_RUNS=3
+OMETER_RUNS=3
 
 # Number of models benchmarked in parallel (default 1, max 10)
-OLLAMAMETER_PARALLEL=1
+OMETER_PARALLEL=1
 EOF
 ```
 
 The cloud API key is **only needed for benchmarking cloud models**.
 
-OllamaMeter has five modules that handle distinct concerns:
+OMeter has five modules that handle distinct concerns:
 
 ```txt
 User ──► cli.py ──► config.py ──► api.py ──► display.py
@@ -215,16 +244,6 @@ For detailed documentation, see the [docs](docs/) directory:
 - [Configuration](docs/configuration.md) — Environment variables, CLI flags, loading order
 - [API Reference](docs/api-reference.md) — Ollama endpoints, function reference, BenchmarkResult
 - [Development](docs/development.md) — Dev setup, running tests, project structure, conventions
-
-## CLI Commands
-
-Both `ometer` and `ollamameter` work identically:
-
-```bash
-# These are the same:
-ometer --cloud
-ollamameter --cloud
-```
 
 ## License
 

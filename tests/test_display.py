@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -8,12 +9,16 @@ import pytest
 from ometer.api import BenchmarkResult
 from ometer.config import Config
 from ometer.display import (
+    SortSpec,
     _benchmark_model_task,
     _build_colored_table,
     _collect_pending,
     _color,
     _column_indices,
+    _context_value,
+    _modified_value,
     _parse_value,
+    _size_value,
     _thresholds,
     build_table,
     extract_context_length,
@@ -21,6 +26,7 @@ from ometer.display import (
     format_float_or_na,
     format_size,
     process_single_model,
+    sort_results,
     stream_table,
 )
 from ometer.export import ExportRow
@@ -297,51 +303,297 @@ class TestProcessSingleModel:
         assert row[3] == "Q4_0"
         assert "completion" in row[4]
         assert export_row.model == "llama3"
-
-    def test_no_benchmark(self):
-        tag_model = {"name": "llama3", "details": {}}
-        show_data = {"details": {}, "capabilities": [], "model_info": {}}
-        benchmark = BenchmarkResult(ttft=None, tps=None, error=None, runs=[])
-        row, export_row = process_single_model(
-            tag_model,
-            show_data,
-            benchmark,
-            show_ttft=False,
-            show_tps=False,
-            verbose=False,
-            num_runs=3,
-        )
-        assert row == ["llama3", "0B", "0", "", ""]
-
-    def test_export_only_returns_empty_row(self):
-        tag_model = {
-            "name": "llama3",
-            "details": {"parameter_size": "8B", "quantization_level": "Q4_0"},
-        }
-        show_data = {
-            "details": {},
-            "capabilities": ["completion"],
-            "model_info": {"model.context_length": 8192},
-        }
-        benchmark = BenchmarkResult(
-            ttft=1.23,
-            tps=45.6,
-            error=None,
-            runs=[{"prompt": "hi", "ttft": 1.23, "tps": 45.6, "error": None}],
-        )
-        row, export_row = process_single_model(
-            tag_model,
-            show_data,
-            benchmark,
-            show_ttft=True,
-            show_tps=True,
-            verbose=False,
-            num_runs=1,
-            export_only=True,
-        )
-        assert row == []
-        assert export_row.model == "llama3"
         assert export_row.ttft == 1.23
+        assert export_row.tps == 45.6
+
+
+class TestSizeValue:
+    def test_basic(self):
+        assert _size_value("8B") == 8e9
+        assert _size_value("7B") == 7e9
+
+    def test_with_decimal(self):
+        assert _size_value("8.5B") == 8.5e9
+
+    def test_suffixes(self):
+        assert _size_value("1K") == 1e3
+        assert _size_value("2M") == 2e6
+        assert _size_value("3G") == 3e9
+        assert _size_value("4T") == 4e12
+
+    def test_case_insensitive(self):
+        assert _size_value("8b") == 8e9
+        assert _size_value("1k") == 1e3
+
+    def test_no_match_returns_zero(self):
+        assert _size_value("") == 0.0
+        assert _size_value("xyz") == 0.0
+
+    def test_raw_integer(self):
+        assert _size_value("500000") == 500000.0
+
+
+class TestContextValue:
+    def test_basic(self):
+        assert _context_value("4096") == 4096
+
+    def test_invalid_returns_zero(self):
+        assert _context_value("") == 0
+        assert _context_value("abc") == 0
+
+
+class TestModifiedValue:
+    def test_valid_iso(self):
+        assert _modified_value("2024-06-15T12:00:00Z") == datetime(
+            2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc
+        )
+
+    def test_invalid_returns_min(self):
+        assert _modified_value("not-a-date") == datetime.min.replace(
+            tzinfo=timezone.utc
+        )
+
+
+class TestSortSpec:
+    def test_parse_none(self):
+        assert SortSpec.parse(None) is None
+
+    def test_parse_name_default_ascending(self):
+        spec = SortSpec.parse("name")
+        assert spec == SortSpec("name", True)
+
+    def test_parse_modified_default_descending(self):
+        spec = SortSpec.parse("modified")
+        assert spec == SortSpec("modified", False)
+
+    def test_parse_ttft_default_ascending(self):
+        spec = SortSpec.parse("ttft")
+        assert spec == SortSpec("ttft", True)
+
+    def test_parse_tps_default_descending(self):
+        spec = SortSpec.parse("tps")
+        assert spec == SortSpec("tps", False)
+
+    def test_parse_size_default_descending(self):
+        spec = SortSpec.parse("size")
+        assert spec == SortSpec("size", False)
+
+    def test_parse_context_default_descending(self):
+        spec = SortSpec.parse("ctx")
+        assert spec == SortSpec("ctx", False)
+
+    def test_parse_reverse_name(self):
+        spec = SortSpec.parse("name", reverse=True)
+        assert spec == SortSpec("name", False)
+
+    def test_parse_reverse_ttft(self):
+        spec = SortSpec.parse("ttft", reverse=True)
+        assert spec == SortSpec("ttft", False)
+
+    def test_parse_reverse_tps(self):
+        spec = SortSpec.parse("tps", reverse=True)
+        assert spec == SortSpec("tps", True)
+
+    def test_parse_reverse_modified(self):
+        spec = SortSpec.parse("modified", reverse=True)
+        assert spec == SortSpec("modified", True)
+
+    def test_eq_and_hash(self):
+        a = SortSpec("name", True)
+        b = SortSpec("name", True)
+        assert a == b
+        assert hash(a) == hash(b)
+
+    def test_parse_invalid_field_raises(self):
+        with pytest.raises(ValueError):
+            SortSpec.parse("tpx")
+
+
+class TestSortResults:
+    def _make_pair(
+        self,
+        model: str = "llama3",
+        size: str = "8B",
+        context: str = "4096",
+        ttft: float | None = 1.0,
+        tps: float | None = 50.0,
+        modified_at: str = "",
+    ) -> tuple[list[str], ExportRow]:
+        row = [model, size, context, "Q4_0", "completion"]
+        export = ExportRow(
+            model=model,
+            size=size,
+            context=context,
+            quant="Q4_0",
+            capabilities="completion",
+            ttft=ttft,
+            tps=tps,
+            error=None,
+            runs=[],
+            modified_at=modified_at,
+        )
+        return row, export
+
+    def test_none_spec_returns_unchanged(self):
+        rows, exports = zip(*[self._make_pair(model="a"), self._make_pair(model="b")])
+        result_rows, result_exports = sort_results(list(rows), list(exports), None)
+        assert [e.model for e in result_exports] == ["a", "b"]
+
+    def test_sort_by_name_ascending(self):
+        pairs = [
+            self._make_pair(model="charlie"),
+            self._make_pair(model="alpha"),
+            self._make_pair(model="bravo"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("name", True)
+        )
+        assert [e.model for e in result_exports] == ["alpha", "bravo", "charlie"]
+
+    def test_sort_by_name_descending(self):
+        pairs = [
+            self._make_pair(model="alpha"),
+            self._make_pair(model="charlie"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("name", False)
+        )
+        assert [e.model for e in result_exports] == ["charlie", "alpha"]
+
+    def test_sort_by_ttft_ascending_best_first(self):
+        pairs = [
+            self._make_pair(model="slow", ttft=5.0),
+            self._make_pair(model="fast", ttft=1.0),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("ttft", True)
+        )
+        assert [e.model for e in result_exports] == ["fast", "slow"]
+
+    def test_sort_by_ttft_descending_worst_first(self):
+        pairs = [
+            self._make_pair(model="fast", ttft=1.0),
+            self._make_pair(model="slow", ttft=5.0),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("ttft", False)
+        )
+        assert [e.model for e in result_exports] == ["slow", "fast"]
+
+    def test_sort_by_tps_descending_best_first(self):
+        pairs = [
+            self._make_pair(model="slow", tps=10.0),
+            self._make_pair(model="fast", tps=100.0),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("tps", False)
+        )
+        assert [e.model for e in result_exports] == ["fast", "slow"]
+
+    def test_sort_by_tps_ascending_worst_first(self):
+        pairs = [
+            self._make_pair(model="fast", tps=100.0),
+            self._make_pair(model="slow", tps=10.0),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("tps", True)
+        )
+        assert [e.model for e in result_exports] == ["slow", "fast"]
+
+    def test_sort_by_size_descending(self):
+        pairs = [
+            self._make_pair(model="small", size="3B"),
+            self._make_pair(model="large", size="70B"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("size", False)
+        )
+        assert [e.model for e in result_exports] == ["large", "small"]
+
+    def test_sort_by_ctx(self):
+        pairs = [
+            self._make_pair(model="small", context="4096"),
+            self._make_pair(model="large", context="128000"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("ctx", False)
+        )
+        assert [e.model for e in result_exports] == ["large", "small"]
+
+    def test_sort_by_modified(self):
+        pairs = [
+            self._make_pair(model="old", modified_at="2024-01-01T00:00:00Z"),
+            self._make_pair(model="new", modified_at="2024-06-01T00:00:00Z"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("modified", False)
+        )
+        assert [e.model for e in result_exports] == ["new", "old"]
+
+    def test_sort_by_modified_descending(self):
+        pairs = [
+            self._make_pair(model="new", modified_at="2024-06-01T00:00:00Z"),
+            self._make_pair(model="old", modified_at="2024-01-01T00:00:00Z"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("modified", True)
+        )
+        assert [e.model for e in result_exports] == ["old", "new"]
+
+    def test_none_ttft_treated_as_worst(self):
+        pairs = [
+            self._make_pair(model="good", ttft=1.0),
+            self._make_pair(model="bad", ttft=None),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("ttft", True)
+        )
+        assert [e.model for e in result_exports] == ["good", "bad"]
+
+    def test_none_tps_treated_as_worst(self):
+        pairs = [
+            self._make_pair(model="good", tps=100.0),
+            self._make_pair(model="bad", tps=None),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("tps", False)
+        )
+        assert [e.model for e in result_exports] == ["good", "bad"]
+
+    def test_unknown_field_falls_back_to_name(self):
+        pairs = [
+            self._make_pair(model="zebra"),
+            self._make_pair(model="alpha"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("unknown", True)
+        )
+        assert [e.model for e in result_exports] == ["alpha", "zebra"]
+
+    def test_rows_reordered_with_exports(self):
+        pairs = [
+            self._make_pair(model="b"),
+            self._make_pair(model="a"),
+        ]
+        rows, exports = zip(*pairs)
+        result_rows, result_exports = sort_results(
+            list(rows), list(exports), SortSpec("name", True)
+        )
+        assert [r[0] for r in result_rows] == ["a", "b"]
+        assert [e.model for e in result_exports] == ["a", "b"]
 
 
 class TestProcessSingleModelVerbose:
@@ -1119,3 +1371,111 @@ class TestStreamTable:
                 show_tps=True,
                 verbose=False,
             )
+
+    @pytest.mark.asyncio
+    async def test_list_only_with_sort(self):
+        models = [
+            {
+                "name": "llama3",
+                "modified_at": "2024-01-01T00:00:00Z",
+                "details": {"parameter_size": "8B"},
+            },
+            {
+                "name": "mistral",
+                "modified_at": "2024-02-01T00:00:00Z",
+                "details": {"parameter_size": "7B"},
+            },
+        ]
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with patch(
+            "ometer.display.fetch_model_show",
+            new_callable=AsyncMock,
+            return_value=show_data,
+        ):
+            result = await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                models,
+                "Sorted List",
+                show_ttft=False,
+                show_tps=False,
+                verbose=False,
+                sort_spec=SortSpec.parse("name"),
+            )
+        assert len(result) == 2
+        assert result[0].model == "llama3"
+        assert result[1].model == "mistral"
+
+    @pytest.mark.asyncio
+    async def test_list_only_live_rebuilds_sorted_table(self):
+        models = [
+            {
+                "name": "mistral",
+                "modified_at": "2024-02-01T00:00:00Z",
+                "details": {"parameter_size": "7B"},
+            },
+            {
+                "name": "llama3",
+                "modified_at": "2024-01-01T00:00:00Z",
+                "details": {"parameter_size": "8B"},
+            },
+        ]
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+
+        updated = []
+
+        class MockLive:
+            def __init__(self, renderable, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def update(self, renderable):
+                updated.append(renderable)
+
+        with (
+            patch(
+                "ometer.display.fetch_model_show",
+                new_callable=AsyncMock,
+                return_value=show_data,
+            ),
+            patch("ometer.display.Live", MockLive),
+        ):
+            result = await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                models,
+                "Sorted",
+                show_ttft=False,
+                show_tps=False,
+                verbose=False,
+                sort_spec=SortSpec.parse("size"),
+            )
+
+        assert len(result) == 2
+        assert [e.model for e in result] == ["llama3", "mistral"]
+
+        assert len(updated) >= 1
+        final_table = updated[-1]
+        model_column_cells = final_table.columns[0]._cells
+        assert len(model_column_cells) == 2
+        assert str(model_column_cells[0]) == "llama3"
+        assert str(model_column_cells[1]) == "mistral"

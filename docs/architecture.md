@@ -1,6 +1,6 @@
 # Architecture
 
-OllamaMeter is structured as five modules inside `src/ometer/`, each handling a specific concern in the request lifecycle.
+OMeter is structured as five modules inside `src/ometer/`, each handling a specific concern in the request lifecycle.
 
 ## Module Overview
 
@@ -15,7 +15,7 @@ OllamaMeter is structured as five modules inside `src/ometer/`, each handling a 
 ## Request Lifecycle
 
 ```txt
-User runs `ometer` or `ollamameter`
+User runs `ometer`
          │
          ▼
    ┌──────────┐
@@ -87,7 +87,8 @@ ExportRow
 ├── ttft: float | None      # Average time-to-first-token
 ├── tps: float | None       # Average tokens-per-second
 ├── error: str | None       # First error, if any
-└── runs: list[dict]        # Per-run {"prompt", "ttft", "tps", "error"}
+├── runs: list[dict]        # Per-run {"prompt", "ttft", "tps", "error"}
+└── modified_at: str         # ISO timestamp from /api/tags
 ```
 
 Defined in `src/ometer/export.py:10-20`.
@@ -110,19 +111,21 @@ Defined in `src/ometer/config.py:25-39`.
 
 Handled by `build_parser()` in `src/ometer/cli.py`:
 
-| Flag         | Type                  | Description                                   |
-| ------------ | --------------------- | --------------------------------------------- |
-| `--version`  |                       | Show version and exit                         |
-| `--local`    | bool                  | Show only local models                        |
-| `--cloud`    | bool                  | Show only cloud models                        |
-| `--model`    | list[str] (`nargs=+`) | Filter models by name (exact or family match) |
-| `--ttft`     | bool                  | Benchmark time-to-first-token                 |
-| `--tps`      | bool                  | Benchmark tokens-per-second                   |
-| `--verbose`  | bool                  | Show per-run breakdown                        |
-| `--runs`     | int (1–3)             | Number of benchmark prompts per model         |
-| `--parallel` | int (1–10)            | Concurrent model benchmarks                   |
-| `--json`     | optional path         | Export results as JSON (stdout if no path)    |
-| `--csv`      | optional path         | Export results as CSV (stdout if no path)     |
+| Flag         | Type                  | Description                                                  |
+| ------------ | --------------------- | ------------------------------------------------------------ |
+| `--version`  |                       | Show version and exit                                        |
+| `--local`    | bool                  | Show only local models                                       |
+| `--cloud`    | bool                  | Show only cloud models                                       |
+| `--model`    | list[str] (`nargs=+`) | Filter models by name (exact or family match)                |
+| `--sort`     | str                   | Sort results by field (name, modified, ttft, tps, size, ctx) |
+| `--reverse`  | bool                  | Reverse the sort order (requires `--sort`)                   |
+| `--ttft`     | bool                  | Benchmark time-to-first-token                                |
+| `--tps`      | bool                  | Benchmark tokens-per-second                                  |
+| `--verbose`  | bool                  | Show per-run breakdown                                       |
+| `--runs`     | int (1–3)             | Number of benchmark prompts per model                        |
+| `--parallel` | int (1–10)            | Concurrent model benchmarks                                  |
+| `--json`     | optional path         | Export results as JSON (stdout if no path)                   |
+| `--csv`      | optional path         | Export results as CSV (stdout if no path)                    |
 
 `--json` and `--csv` are mutually exclusive.
 
@@ -132,7 +135,6 @@ Two CLI commands are registered in `pyproject.toml`:
 
 ```txt
 ometer      ──►  ometer.cli:main_entrypoint
-ollamameter ──►  ometer.cli:main_entrypoint
 ```
 
 The module can also be invoked via `python -m ometer`, handled by `src/ometer/__main__.py`.

@@ -6,8 +6,8 @@ This guide covers setting up a development environment, running tests, and proje
 
 ```bash
 # Clone and enter the project
-git clone https://github.com/EndoTheDev/OllamaMeter.git
-cd OllamaMeter
+git clone https://github.com/EndoTheDev/OMeter.git
+cd OMeter
 
 # Create virtual environment and install dependencies
 uv sync
@@ -66,7 +66,7 @@ Defined in `pyproject.toml [dependency-groups.dev]`:
 ## Project Structure
 
 ```txt
-OllamaMeter/
+OMeter/
 ├── src/ometer/
 │   ├── __init__.py       # Package version (__version__)
 │   ├── __main__.py       # `python -m ometer` entry point
@@ -95,7 +95,7 @@ OllamaMeter/
 
 ## Build System
 
-OllamaMeter uses `hatchling` as its build backend (configured in `pyproject.toml`):
+OMeter uses `hatchling` as its build backend (configured in `pyproject.toml`):
 
 ```toml
 [build-system]
@@ -113,7 +113,7 @@ Two CLI commands are registered:
 ```toml
 [project.scripts]
 ometer = "ometer.cli:main_entrypoint"
-ollamameter = "ometer.cli:main_entrypoint"
+
 ```
 
 Both commands are identical and invoke the same `main_entrypoint()` function.

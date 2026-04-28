@@ -12,7 +12,7 @@ from InquirerPy.prompts.list import ListPrompt
 from ometer import __version__
 from ometer.api import sort_by_modified, fetch_tags
 from ometer.config import Config
-from ometer.display import console, stream_table
+from ometer.display import console, SORT_FIELDS, stream_table, SortSpec
 from ometer.export import ExportRow, export_results
 
 
@@ -25,6 +25,8 @@ async def main(
     config: Config,
     export_fmt: str | None = None,
     export_path: str | None = None,
+    sort: str | None = None,
+    reverse: bool = False,
 ) -> None:
     export_only = export_fmt is not None
     chat_headers: dict[str, str] | None = None
@@ -33,6 +35,7 @@ async def main(
 
     async with httpx.AsyncClient() as client:
         local_models: list[dict] = []
+        sort_spec = SortSpec.parse(sort, reverse=reverse)
         if mode in (None, "local"):
             try:
                 with console.status("Fetching local models…"):
@@ -101,6 +104,7 @@ async def main(
                 show_tps,
                 verbose,
                 export_only=export_only,
+                sort_spec=sort_spec,
             )
             all_exports.extend(local_exports)
             if mode is None and not export_only:
@@ -123,6 +127,7 @@ async def main(
                 verbose,
                 chat_headers,
                 export_only=export_only,
+                sort_spec=sort_spec,
             )
             all_exports.extend(cloud_exports)
         elif mode in (None, "cloud"):
@@ -191,6 +196,22 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         default=None,
         help="Number of models benchmarked in parallel (default 1)",
     )
+    parser.add_argument(
+        "--sort",
+        type=str,
+        default=None,
+        choices=list(SORT_FIELDS),
+        help=(
+            "Sort results by field. "
+            "Default order is best-first (e.g. ttft lowest first, tps highest first). "
+            "Use --reverse to invert."
+        ),
+    )
+    parser.add_argument(
+        "--reverse",
+        action="store_true",
+        help="Reverse the sort order (--sort required)",
+    )
     export_group = parser.add_mutually_exclusive_group()
     export_group.add_argument(
         "--json",
@@ -237,6 +258,9 @@ def main_entrypoint() -> None:
     parser = build_parser(prog)
     args = parser.parse_args()
 
+    if args.reverse and not args.sort:
+        parser.error("--reverse requires --sort")
+
     config = Config.from_env(runs=args.runs, parallel=args.parallel)
 
     export_fmt = None
@@ -280,6 +304,8 @@ def main_entrypoint() -> None:
                 config,
                 export_fmt,
                 export_path,
+                args.sort,
+                args.reverse,
             )
         )
     except KeyboardInterrupt:

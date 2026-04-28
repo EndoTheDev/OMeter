@@ -82,10 +82,27 @@ Parallel benchmarking is controlled by `asyncio.Semaphore` in `display.py`:
 semaphore = asyncio.Semaphore(config.num_parallel)
 ```
 
-- `OLLAMAMETER_PARALLEL` / `--parallel` sets concurrency (default 1, max 10).
+- `OMETER_PARALLEL` / `--parallel` sets concurrency (default 1, max 10).
 - The semaphore gates both `/api/show` requests and benchmark runs.
 - `asyncio.wait(FIRST_COMPLETED)` is used to update the live table as each model finishes.
 - The shared async collection logic is extracted into `_collect_pending()`, which awaits the next completed task and stores results into dicts.
+
+## Sorting
+
+After all models are benchmarked and collected, results are sorted via `sort_results()` in `display.py`.
+
+Supported sort fields (via `--sort`):
+
+| Field      | Default order        | Reverse (`--reverse`) |
+| ---------- | -------------------- | --------------------- |
+| `name`     | A–Z ascending        | Z–A descending        |
+| `modified` | Newest first         | Oldest first          |
+| `ttft`     | Lowest (best) first  | Highest (worst) first |
+| `tps`      | Highest (best) first | Lowest (worst) first  |
+| `size`     | Largest first        | Smallest first        |
+| `ctx`      | Largest first        | Smallest first        |
+
+Sorting applies in both live display mode and export-only mode.
 
 ## Export Mode
 
@@ -96,6 +113,7 @@ When `--json` or `--csv` is used, `stream_table()` runs in export-only mode (`ex
 - If benchmarks are active (`--ttft` or `--tps`), a `console.status` spinner shows progress: `"Benchmarking 2/5 model(s)…"`.
 - On completion, results are written to stdout or a file via `export_results()`.
 - For list-only mode (no benchmarks), only the existing `"Fetching details for N model(s)…"` status is shown.
+- When sorting is active (`--sort`), the final export is sorted before outputting.
 
 ## Color Thresholds
 

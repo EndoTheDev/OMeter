@@ -18,6 +18,7 @@ class ExportRow:
     tps: float | None
     error: str | None
     runs: list[dict]
+    modified_at: str = ""
 
 
 def format_json(
@@ -31,6 +32,7 @@ def format_json(
             "context": row.context,
             "quant": row.quant,
             "capabilities": row.capabilities,
+            "modified_at": row.modified_at,
         }
         if show_ttft:
             if verbose:
@@ -55,7 +57,7 @@ def format_json(
 def format_csv(
     rows: list[ExportRow], num_runs: int, show_ttft: bool, show_tps: bool, verbose: bool
 ) -> str:
-    headers = ["model", "size", "context", "quant", "capabilities"]
+    headers = ["model", "size", "context", "quant", "capabilities", "modified_at"]
     if show_ttft:
         if verbose:
             for i in range(1, num_runs + 1):
@@ -79,6 +81,7 @@ def format_csv(
             "context": row.context,
             "quant": row.quant,
             "capabilities": row.capabilities,
+            "modified_at": row.modified_at,
         }
         if show_ttft:
             if verbose:
