@@ -23,6 +23,7 @@ async def main(
     verbose: bool,
     target_models: list[str] | None,
     config: Config,
+    num_predict: int | None = None,
     export_fmt: str | None = None,
     export_path: str | None = None,
     sort: str | None = None,
@@ -103,6 +104,7 @@ async def main(
                 show_ttft,
                 show_tps,
                 verbose,
+                num_predict=num_predict,
                 export_only=export_only,
                 sort_spec=sort_spec,
             )
@@ -126,6 +128,7 @@ async def main(
                 show_tps,
                 verbose,
                 chat_headers,
+                num_predict=num_predict,
                 export_only=export_only,
                 sort_spec=sort_spec,
             )
@@ -211,6 +214,12 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         "--reverse",
         action="store_true",
         help="Reverse the sort order (--sort required)",
+    )
+    parser.add_argument(
+        "--num_predict",
+        type=int,
+        default=None,
+        help="Maximum number of generated tokens passed through as Ollama num_predict",
     )
     export_group = parser.add_mutually_exclusive_group()
     export_group.add_argument(
@@ -302,6 +311,7 @@ def main_entrypoint() -> None:
                 args.verbose,
                 args.model,
                 config,
+                args.num_predict,
                 export_fmt,
                 export_path,
                 args.sort,
