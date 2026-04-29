@@ -62,12 +62,15 @@ async def benchmark_chat_single_run(
     prompt: str,
     headers: dict[str, str] | None = None,
     show_data: dict[str, Any] | None = None,
+    num_predict: int | None = None,
 ) -> dict[str, Any]:
     payload = {
         "model": model_name,
         "messages": [{"role": "user", "content": prompt}],
         "stream": True,
     }
+    if num_predict is not None:
+        payload["options"] = {"num_predict": num_predict}
 
     start = time.perf_counter()
     first_token_time: float = -1.0
@@ -176,6 +179,7 @@ async def benchmark_model(
     model_name: str,
     show_data: dict[str, Any],
     headers: dict[str, str] | None = None,
+    num_predict: int | None = None,
 ) -> BenchmarkResult:
     runs: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -189,7 +193,7 @@ async def benchmark_model(
             )
         else:
             result = await benchmark_chat_single_run(
-                client, base_url, model_name, prompt, headers, show_data
+                client, base_url, model_name, prompt, headers, show_data, num_predict
             )
         runs.append({"prompt": prompt, **result})
         if result["error"]:

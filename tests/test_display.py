@@ -798,6 +798,7 @@ class TestBenchmarkModelTask:
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
+                num_predict=None,
                 semaphore=asyncio.Semaphore(1),
             )
         assert idx == 0
@@ -826,6 +827,7 @@ class TestBenchmarkModelTask:
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
+                num_predict=None,
                 semaphore=asyncio.Semaphore(1),
             )
         assert len(errors) == 1
@@ -847,6 +849,7 @@ class TestBenchmarkModelTask:
             show_tps=False,
             verbose=False,
             chat_headers=None,
+            num_predict=None,
             semaphore=asyncio.Semaphore(1),
         )
         assert idx == 0
@@ -876,6 +879,7 @@ class TestBenchmarkModelTask:
                 show_tps=True,
                 verbose=False,
                 chat_headers=None,
+                num_predict=None,
                 semaphore=asyncio.Semaphore(1),
             )
         assert len(errors) == 1

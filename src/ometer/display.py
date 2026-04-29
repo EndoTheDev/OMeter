@@ -357,6 +357,7 @@ async def _benchmark_model_task(
     show_tps: bool,
     verbose: bool,
     chat_headers: dict[str, str] | None,
+    num_predict: int | None,
     semaphore: asyncio.Semaphore,
     export_only: bool = False,
 ) -> tuple[int, list[str], ExportRow, list[str]]:
@@ -371,7 +372,7 @@ async def _benchmark_model_task(
     if show_ttft or show_tps:
         async with semaphore:
             bench = await benchmark_model(
-                client, config, base_url, model["name"], show_data, chat_headers
+                client, config, base_url, model["name"], show_data, chat_headers, num_predict
             )
         if bench.error:
             errors.append(f"{model['name']}: {bench.error}")
@@ -417,6 +418,7 @@ async def stream_table(
     show_tps: bool,
     verbose: bool,
     chat_headers: dict[str, str] | None = None,
+    num_predict: int | None = None,
     export_only: bool = False,
     sort_spec: SortSpec | None = None,
 ) -> list[ExportRow]:
@@ -446,6 +448,7 @@ async def stream_table(
                 show_tps,
                 verbose,
                 chat_headers,
+                num_predict,
                 semaphore,
                 export_only=export_only,
             )
