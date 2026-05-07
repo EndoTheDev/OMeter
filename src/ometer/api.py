@@ -180,7 +180,9 @@ async def benchmark_model(
     runs: list[dict[str, Any]] = []
     errors: list[str] = []
 
-    use_embed = is_embedding_model(show_data) and base_url.rstrip("/") == config.local_base_url.rstrip("/")
+    use_embed = is_embedding_model(show_data) and base_url.rstrip(
+        "/"
+    ) == config.local_base_url.rstrip("/")
 
     for prompt in config.bench_prompts_active:
         if use_embed:

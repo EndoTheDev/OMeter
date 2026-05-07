@@ -308,6 +308,9 @@ def main_entrypoint() -> None:
                 args.reverse,
             )
         )
+    except ValueError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
     except KeyboardInterrupt:
         console.print("[dim]Interrupted.[/dim]")
         sys.exit(130)
