@@ -134,6 +134,38 @@ class TestBenchmarkChatSingleRun:
         assert result["error"] is None
 
     @pytest.mark.asyncio
+    async def test_num_predict_is_sent_in_options(self, httpx_mock: pytest_httpx.HTTPXMock):
+        body = json.dumps(
+            {
+                "message": {"content": "done"},
+                "done": True,
+                "eval_count": 1,
+                "eval_duration": 1_000_000_000,
+                "total_duration": 1_000_000_000,
+            }
+        )
+        captured: dict[str, object] = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            captured["json"] = json.loads(request.content.decode())
+            return httpx.Response(200, content=body.encode())
+
+        httpx_mock.add_callback(handler, url="http://localhost:11434/api/chat")
+
+        async with httpx.AsyncClient() as client:
+            await benchmark_chat_single_run(
+                client,
+                "http://localhost:11434",
+                "llama3",
+                "hi",
+                num_predict=100,
+            )
+
+        payload = captured["json"]
+        assert isinstance(payload, dict)
+        assert payload["options"]["num_predict"] == 100
+
+    @pytest.mark.asyncio
     async def test_error_in_stream(self, httpx_mock: pytest_httpx.HTTPXMock):
         chunks = [
             json.dumps({"error": "model not found"}),

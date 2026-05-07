@@ -34,6 +34,10 @@ class TestBuildParser:
         args = self._parse("--parallel", "5")
         assert args.parallel == 5
 
+    def test_num_predict_flag(self):
+        args = self._parse("--num_predict", "128")
+        assert args.num_predict == 128
+
     def test_runs_and_parallel(self):
         args = self._parse("--runs", "1", "--parallel", "3")
         assert args.runs == 1
@@ -279,6 +283,22 @@ class TestMain:
             await main("local", False, False, False, None, config)
             mock_stream.assert_called_once()
             assert mock_stream.call_args[0][3] == _LOCAL_MODELS
+
+    @pytest.mark.asyncio
+    async def test_main_passes_num_predict(self):
+        config = _make_config()
+        with (
+            patch(
+                "ometer.cli.fetch_tags",
+                new_callable=AsyncMock,
+                return_value=_LOCAL_MODELS,
+            ),
+            patch(
+                "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
+            ) as mock_stream,
+        ):
+            await main("local", False, False, False, None, config, 64)
+            assert mock_stream.call_args.kwargs["num_predict"] == 64
 
     @pytest.mark.asyncio
     async def test_local_fetch_error(self):
