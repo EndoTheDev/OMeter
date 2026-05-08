@@ -3,7 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ometer.export import ExportRow, format_csv, format_json, export_results
+from ometer.export import (
+    ExportRow,
+    export_history,
+    export_results,
+    format_csv,
+    format_history_csv,
+    format_history_json,
+    format_json,
+)
 
 
 def _make_row(
@@ -215,4 +223,121 @@ class TestExportResults:
         )
         content = Path(path).read_text()
         assert "model" in content
+        assert "llama3" in content
+
+
+def _history_row(**overrides: object) -> dict:
+    base: dict = {
+        "model_name": "llama3",
+        "timestamp": "2025-01-01T00:00:00+00:00",
+        "model_size": "7B",
+        "context_length": 8192,
+        "quantization": "Q4_0",
+        "capabilities": "completion",
+        "mode": "local",
+        "ttft": 1.0,
+        "tps": 20.0,
+        "error": None,
+        "prompts": ["hi"],
+    }
+    base.update(overrides)
+    return base
+
+
+class TestFormatHistoryJson:
+    def test_basic(self):
+        result = json.loads(format_history_json([_history_row()], verbose=False))
+        assert len(result) == 1
+        assert result[0]["model"] == "llama3"
+        assert result[0]["ttft"] == 1.0
+        assert result[0]["tps"] == 20.0
+        assert "prompts" not in result[0]
+
+    def test_verbose_includes_prompts(self):
+        result = json.loads(format_history_json([_history_row()], verbose=True))
+        assert result[0]["prompts"] == ["hi"]
+
+    def test_with_error(self):
+        result = json.loads(
+            format_history_json(
+                [_history_row(error="timeout", ttft=None, tps=None)], verbose=False
+            )
+        )
+        assert result[0]["error"] == "timeout"
+        assert result[0]["ttft"] is None
+
+    def test_multiple_rows(self):
+        rows = [
+            _history_row(model_name="llama3"),
+            _history_row(model_name="mistral"),
+        ]
+        result = json.loads(format_history_json(rows, verbose=False))
+        assert len(result) == 2
+
+    def test_null_values_serialized(self):
+        result = json.loads(
+            format_history_json(
+                [_history_row(ttft=None, tps=None, error=None)],
+                verbose=False,
+            )
+        )
+        assert result[0]["ttft"] is None
+        assert result[0]["tps"] is None
+        assert result[0]["error"] is None
+
+
+class TestFormatHistoryCsv:
+    def test_basic(self):
+        result = format_history_csv([_history_row()], verbose=False)
+        lines = result.strip().split("\n")
+        assert len(lines) == 2
+        assert "model" in lines[0]
+        assert "ttft" in lines[0]
+        assert "1.00" in lines[1]
+
+    def test_verbose_includes_prompts_header(self):
+        result = format_history_csv([_history_row()], verbose=True)
+        lines = result.strip().split("\n")
+        assert "prompts" in lines[0]
+
+    def test_none_values_empty_string(self):
+        result = format_history_csv(
+            [_history_row(ttft=None, tps=None, error=None)],
+            verbose=False,
+        )
+        lines = result.strip().split("\n")
+        data = lines[1].split(",")
+        assert "" in data  # none values rendered as empty
+
+    def test_empty_model_size(self):
+        result = format_history_csv(
+            [_history_row(model_size="", context_length=0, quantization="")],
+            verbose=False,
+        )
+        lines = result.strip().split("\n")
+        assert "llama3" in lines[1]
+
+
+class TestExportHistory:
+    def test_json_to_stdout(self, capsys):
+        export_history([_history_row()], "json", None, verbose=False)
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data[0]["model"] == "llama3"
+
+    def test_csv_to_stdout(self, capsys):
+        export_history([_history_row()], "csv", None, verbose=False)
+        captured = capsys.readouterr()
+        assert "llama3" in captured.out
+
+    def test_json_to_file(self, tmp_path):
+        path = str(tmp_path / "hist.json")
+        export_history([_history_row()], "json", path, verbose=False)
+        data = json.loads(Path(path).read_text())
+        assert data[0]["model"] == "llama3"
+
+    def test_csv_to_file(self, tmp_path):
+        path = str(tmp_path / "hist.csv")
+        export_history([_history_row()], "csv", path, verbose=False)
+        content = Path(path).read_text()
         assert "llama3" in content

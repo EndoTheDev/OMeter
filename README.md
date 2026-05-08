@@ -18,6 +18,8 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 - 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats (or use `--prompts` for custom prompts)
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
 - 🎨 **Beautiful CLI** powered by `rich` + `InquirerPy`
+- 📜 **Benchmark history** — every run is auto-saved to a local SQLite database; view past results with `--history`
+- 📈 **Performance trends** — arrows (↑↓→) automatically appear inline next to TTFT/TPS values when historical data is available
 
 ## Preview
 
@@ -193,6 +195,33 @@ ometer --local --ttft --tps --csv
 ometer --local --ttft --tps --csv results.csv
 ```
 
+View **benchmark history** (latest run per model):
+
+```bash
+ometer --history
+```
+
+Show all historical runs with full details:
+
+```bash
+ometer --history --verbose
+```
+
+Filter history to specific models:
+
+```bash
+ometer --history --model llama3
+```
+
+Export history as **JSON** or **CSV**:
+
+```bash
+ometer --history --json
+ometer --history --csv history.csv
+```
+
+Performance trend arrows (↑ improved, ↓ degraded, → stable within 5%) appear inline next to TTFT and TPS values automatically. No flag needed.
+
 See all options:
 
 ```bash
@@ -226,7 +255,15 @@ EOF
 
 The cloud API key is **only needed for benchmarking cloud models**.
 
-OMeter has five modules that handle distinct concerns:
+Benchmark results are **auto-saved** to a local SQLite database. The database path can be overridden:
+
+```bash
+export OMETER_HISTORY_DB=/custom/path/history.db
+```
+
+By default it lives at `~/.local/share/ometer/ometer_history.db`.
+
+OMeter has six modules that handle distinct concerns:
 
 ```txt
 User ──► cli.py ──► config.py ──► api.py ──► display.py
@@ -235,9 +272,11 @@ User ──► cli.py ──► config.py ──► api.py ──► display.py
       mode resolve   validate     benchmark     color thresholds
       interactive     clamp       stream        live updates
       export             │            │            │
-                         │            │        export.py
-                         │            │            │
-                         │            │       JSON/CSV output
+         │               │            │        history.py
+         │               │            │            │
+     export.py           │            │       SQLite DB
+         │                              │
+    JSON/CSV output                auto-save + trend
 ```
 
 - **cli.py** — Entry point, argument parsing, interactive model selection, export dispatch
@@ -245,6 +284,7 @@ User ──► cli.py ──► config.py ──► api.py ──► display.py
 - **api.py** — HTTP communication with Ollama, TTFT/TPS measurement
 - **display.py** — Rich terminal UI, live table updates, percentile-based color coding
 - **export.py** — JSON/CSV export formatting and file output
+- **history.py** — SQLite-backed benchmark persistence, trend computation, history queries
 
 For detailed documentation, see the [docs](docs/) directory:
 

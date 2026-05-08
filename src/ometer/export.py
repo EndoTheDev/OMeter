@@ -19,6 +19,7 @@ class ExportRow:
     error: str | None
     runs: list[dict]
     modified_at: str = ""
+    mode: str = ""
 
 
 def format_json(
@@ -114,6 +115,84 @@ def export_results(
         content = format_json(rows, num_runs, show_ttft, show_tps, verbose)
     else:
         content = format_csv(rows, num_runs, show_ttft, show_tps, verbose)
+
+    if path:
+        Path(path).write_text(content, encoding="utf-8")
+    else:
+        print(content)
+
+
+def format_history_json(history_rows: list[dict], verbose: bool) -> str:
+    output = []
+    for r in history_rows:
+        entry: dict = {
+            "model": r["model_name"],
+            "timestamp": r["timestamp"],
+            "size": r["model_size"],
+            "context": r["context_length"],
+            "quantization": r["quantization"],
+            "capabilities": r["capabilities"],
+            "mode": r["mode"],
+            "ttft": r["ttft"],
+            "tps": r["tps"],
+            "error": r["error"],
+        }
+        if verbose:
+            entry["prompts"] = r.get("prompts", [])
+        output.append(entry)
+    return json.dumps(output, indent=2)
+
+
+def format_history_csv(history_rows: list[dict], verbose: bool) -> str:
+    headers = [
+        "model",
+        "timestamp",
+        "size",
+        "context",
+        "quantization",
+        "capabilities",
+        "mode",
+        "ttft",
+        "tps",
+        "error",
+    ]
+    if verbose:
+        headers.append("prompts")
+
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=headers)
+    writer.writeheader()
+
+    for r in history_rows:
+        entry: dict = {
+            "model": r["model_name"],
+            "timestamp": r["timestamp"],
+            "size": r["model_size"] or "",
+            "context": r["context_length"] or "",
+            "quantization": r["quantization"] or "",
+            "capabilities": r["capabilities"] or "",
+            "mode": r["mode"] or "",
+            "ttft": f'{r["ttft"]:.2f}' if r["ttft"] is not None else "",
+            "tps": f'{r["tps"]:.2f}' if r["tps"] is not None else "",
+            "error": r["error"] or "",
+        }
+        if verbose:
+            entry["prompts"] = json.dumps(r.get("prompts", []))
+        writer.writerow(entry)
+
+    return buf.getvalue()
+
+
+def export_history(
+    history_rows: list[dict],
+    fmt: str,
+    path: str | None,
+    verbose: bool,
+) -> None:
+    if fmt == "json":
+        content = format_history_json(history_rows, verbose)
+    else:
+        content = format_history_csv(history_rows, verbose)
 
     if path:
         Path(path).write_text(content, encoding="utf-8")

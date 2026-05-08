@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
@@ -12,33 +13,67 @@ from InquirerPy.prompts.list import ListPrompt
 from ometer import __version__
 from ometer.api import sort_by_modified, fetch_tags
 from ometer.config import Config
-from ometer.display import console, SORT_FIELDS, stream_table, SortSpec
-from ometer.export import ExportRow, export_results
+from ometer.display import (
+    console,
+    SORT_FIELDS,
+    stream_table,
+    SortSpec,
+    build_history_table,
+)
+from ometer.export import ExportRow, export_results, export_history
+from ometer.history import (
+    get_connection,
+    get_latest_per_model,
+    save_run,
+    build_run_data,
+)
 
 
-async def main(
-    mode: str | None,
-    show_ttft: bool,
-    show_tps: bool,
-    verbose: bool,
-    target_models: list[str] | None,
-    config: Config,
-    num_predict: int | None = None,
-    export_fmt: str | None = None,
-    export_path: str | None = None,
-    sort: str | None = None,
-    reverse: bool = False,
-    prompts: list[str] | None = None,
-) -> None:
-    export_only = export_fmt is not None
+@dataclass
+class MainOptions:
+    mode: str | None = None
+    show_ttft: bool = False
+    show_tps: bool = False
+    verbose: bool = False
+    target_models: list[str] | None = None
+    num_predict: int | None = None
+    export_fmt: str | None = None
+    export_path: str | None = None
+    sort: str | None = None
+    reverse: bool = False
+    show_history: bool = False
+
+
+async def main(config: Config, options: MainOptions) -> None:
+    if options.show_history:
+        conn = get_connection()
+        rows = get_latest_per_model(conn)
+        conn.close()
+        if options.target_models:
+            rows = [
+                r
+                for r in rows
+                if any(match_model(r["model_name"], m) for m in options.target_models)
+            ]
+        if options.export_fmt:
+            export_history(
+                rows, options.export_fmt, options.export_path, verbose=options.verbose
+            )
+        elif rows:
+            build_history_table(rows, verbose=options.verbose)
+        else:
+            console.print("[dim]No history found.[/dim]")
+        return
+
+    export_only = options.export_fmt is not None
     chat_headers: dict[str, str] | None = None
     if config.cloud_api_key:
         chat_headers = {"Authorization": f"Bearer {config.cloud_api_key}"}
 
     async with httpx.AsyncClient() as client:
         local_models: list[dict] = []
-        sort_spec = SortSpec.parse(sort, reverse=reverse)
-        if mode in (None, "local"):
+        sort_spec = SortSpec.parse(options.sort, reverse=options.reverse)
+        if options.mode in (None, "local"):
             try:
                 with console.status("Fetching local models…"):
                     local_models = sort_by_modified(
@@ -48,8 +83,8 @@ async def main(
                 console.print(f"[yellow]⚠ Skipping local Ollama ({e}).[/yellow]")
 
         if (
-            (show_ttft or show_tps)
-            and mode in (None, "cloud")
+            (options.show_ttft or options.show_tps)
+            and options.mode in (None, "cloud")
             and not config.cloud_api_key
         ):
             console.print(
@@ -58,7 +93,7 @@ async def main(
             )
 
         cloud_models: list[dict] = []
-        if mode in (None, "cloud"):
+        if options.mode in (None, "cloud"):
             try:
                 with console.status("Fetching cloud models…"):
                     cloud_models = sort_by_modified(
@@ -67,26 +102,26 @@ async def main(
             except Exception as e:
                 console.print(f"[red]✗ Failed to fetch cloud models: {e}[/red]")
 
-        if target_models:
+        if options.target_models:
             local_models = [
                 m
                 for m in local_models
-                if any(match_model(m["name"], t) for t in target_models)
+                if any(match_model(m["name"], t) for t in options.target_models)
             ]
             cloud_models = [
                 m
                 for m in cloud_models
-                if any(match_model(m["name"], t) for t in target_models)
+                if any(match_model(m["name"], t) for t in options.target_models)
             ]
 
             searched: list[str] = []
-            if mode in (None, "local"):
+            if options.mode in (None, "local"):
                 searched.append("local")
-            if mode in (None, "cloud"):
+            if options.mode in (None, "cloud"):
                 searched.append("cloud")
             if not local_models and not cloud_models:
                 console.print(
-                    f"[red]✗ No model matching '{', '.join(target_models)}' found in {', '.join(searched)}.[/red]"
+                    f"[red]✗ No model matching '{', '.join(options.target_models)}' found in {', '.join(searched)}.[/red]"
                 )
                 sys.exit(1)
 
@@ -94,59 +129,83 @@ async def main(
 
         if local_models:
             local_title = "Ollama Local Models"
-            if target_models:
-                local_title += f" — {', '.join(target_models)}"
+            if options.target_models:
+                local_title += f" — {', '.join(options.target_models)}"
             local_exports = await stream_table(
                 client,
                 config,
                 config.local_base_url,
                 local_models,
                 local_title,
-                show_ttft,
-                show_tps,
-                verbose,
-                num_predict=num_predict,
+                options.show_ttft,
+                options.show_tps,
+                options.verbose,
+                num_predict=options.num_predict,
                 export_only=export_only,
                 sort_spec=sort_spec,
+                mode="local",
             )
             all_exports.extend(local_exports)
-            if mode is None and not export_only:
+            if options.mode is None and not export_only:
                 console.print()
-        elif mode in (None, "local"):
+        elif options.mode in (None, "local"):
             console.print("[dim]No local models found.[/dim]")
 
         if cloud_models:
             cloud_title = "Ollama Cloud Available Models"
-            if target_models:
-                cloud_title += f" — {', '.join(target_models)}"
+            if options.target_models:
+                cloud_title += f" — {', '.join(options.target_models)}"
             cloud_exports = await stream_table(
                 client,
                 config,
                 config.cloud_base_url,
                 cloud_models,
                 cloud_title,
-                show_ttft,
-                show_tps,
-                verbose,
+                options.show_ttft,
+                options.show_tps,
+                options.verbose,
                 chat_headers,
-                num_predict=num_predict,
+                num_predict=options.num_predict,
                 export_only=export_only,
                 sort_spec=sort_spec,
+                mode="cloud",
             )
             all_exports.extend(cloud_exports)
-        elif mode in (None, "cloud"):
+        elif options.mode in (None, "cloud"):
             console.print("[dim]No cloud models found.[/dim]")
 
-        if export_fmt and all_exports:
+        if options.export_fmt and all_exports:
             export_results(
                 all_exports,
-                export_fmt,
-                export_path,
+                options.export_fmt,
+                options.export_path,
                 config.num_runs,
-                show_ttft,
-                show_tps,
-                verbose,
+                options.show_ttft,
+                options.show_tps,
+                options.verbose,
             )
+
+        if all_exports and (options.show_ttft or options.show_tps):
+            conn = get_connection()
+            for export in all_exports:
+                run_data = build_run_data(
+                    model_name=export.model,
+                    model_size=export.size,
+                    context_length=(
+                        int(export.context) if export.context.isdigit() else 0
+                    ),
+                    quantization=export.quant,
+                    capabilities=export.capabilities,
+                    ttft=export.ttft,
+                    tps=export.tps,
+                    error=export.error,
+                    mode=export.mode,
+                    prompts=[r["prompt"] for r in export.runs],
+                    num_predict=options.num_predict,
+                    parallel=config.num_parallel,
+                )
+                save_run(conn, run_data)
+            conn.close()
 
 
 def match_model(model_name: str, target: str) -> bool:
@@ -229,6 +288,11 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         default=None,
         help="Maximum number of generated tokens passed through as Ollama num_predict",
     )
+    parser.add_argument(
+        "--history",
+        action="store_true",
+        help="Show benchmark history from previous runs",
+    )
     export_group = parser.add_mutually_exclusive_group()
     export_group.add_argument(
         "--json",
@@ -303,6 +367,17 @@ def main_entrypoint() -> None:
         export_fmt = "csv"
         export_path = args.csv_export or None
 
+    if args.history:
+        options = MainOptions(
+            verbose=args.verbose,
+            target_models=args.model,
+            export_fmt=export_fmt,
+            export_path=export_path,
+            show_history=True,
+        )
+        asyncio.run(main(config, options))
+        return
+
     def _interactive_prompt() -> str:
         return ListPrompt(
             message="Which Ollama models would you like to list?",
@@ -324,23 +399,21 @@ def main_entrypoint() -> None:
         console.print("[dim]Canceled.[/dim]")
         raise
 
+    options = MainOptions(
+        mode=mode,
+        show_ttft=args.ttft,
+        show_tps=args.tps,
+        verbose=args.verbose,
+        target_models=args.model,
+        num_predict=args.num_predict,
+        export_fmt=export_fmt,
+        export_path=export_path,
+        sort=args.sort,
+        reverse=args.reverse,
+    )
+
     try:
-        asyncio.run(
-            main(
-                mode,
-                args.ttft,
-                args.tps,
-                args.verbose,
-                args.model,
-                config,
-                args.num_predict,
-                export_fmt,
-                export_path,
-                args.sort,
-                args.reverse,
-                prompts=resolved_prompts,
-            )
-        )
+        asyncio.run(main(config, options))
     except ValueError as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)

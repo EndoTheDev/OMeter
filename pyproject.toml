@@ -1,6 +1,6 @@
 [project]
 name = "ometer"
-version = "0.3.0"
+version = "0.4.0"
 description = "OMeter — list, benchmark, and compare Ollama models"
 readme = "README.md"
 license = {text = "MIT"}
@@ -44,4 +44,9 @@ source = ["ometer"]
 omit = [
     "tests/*",
     "*/__main__.py",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::RuntimeWarning",
 ]

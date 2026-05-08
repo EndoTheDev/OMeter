@@ -20,6 +20,7 @@ from ometer.display import (
     _parse_value,
     _size_value,
     _thresholds,
+    build_history_table,
     build_table,
     extract_context_length,
     format_capabilities,
@@ -141,6 +142,18 @@ class TestParseValue:
 
     def test_empty(self):
         assert _parse_value("") is None
+
+    def test_strips_up_arrow(self):
+        assert _parse_value("1.23 \u2191") == 1.23
+
+    def test_strips_down_arrow(self):
+        assert _parse_value("5.00 \u2193") == 5.0
+
+    def test_strips_stable_arrow(self):
+        assert _parse_value("3.14 \u2192") == 3.14
+
+    def test_strips_arrow_no_space(self):
+        assert _parse_value("1.00\u2191") == 1.0
 
 
 class TestThresholds:
@@ -317,6 +330,77 @@ class TestProcessSingleModel:
         assert export_row.model == "llama3"
         assert export_row.ttft == 1.23
         assert export_row.tps == 45.6
+
+    def test_with_trend_improving(self):
+        tag_model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"details": {}, "capabilities": [], "model_info": {}}
+        benchmark = BenchmarkResult(ttft=0.5, tps=30.0, error=None, runs=[])
+        row, _ = process_single_model(
+            tag_model,
+            show_data,
+            benchmark,
+            show_ttft=True,
+            show_tps=True,
+            verbose=False,
+            num_runs=1,
+            ttft_trend="\u2191",
+            tps_trend="\u2191",
+        )
+        assert row[5] == "0.50 \u2191"
+        assert row[6] == "30.00 \u2191"
+
+    def test_with_trend_degrading(self):
+        tag_model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"details": {}, "capabilities": [], "model_info": {}}
+        benchmark = BenchmarkResult(ttft=2.0, tps=10.0, error=None, runs=[])
+        row, _ = process_single_model(
+            tag_model,
+            show_data,
+            benchmark,
+            show_ttft=True,
+            show_tps=True,
+            verbose=False,
+            num_runs=1,
+            ttft_trend="\u2193",
+            tps_trend="\u2193",
+        )
+        assert row[5] == "2.00 \u2193"
+        assert row[6] == "10.00 \u2193"
+
+    def test_with_trend_stable(self):
+        tag_model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"details": {}, "capabilities": [], "model_info": {}}
+        benchmark = BenchmarkResult(ttft=1.0, tps=20.0, error=None, runs=[])
+        row, _ = process_single_model(
+            tag_model,
+            show_data,
+            benchmark,
+            show_ttft=True,
+            show_tps=True,
+            verbose=False,
+            num_runs=1,
+            ttft_trend="\u2192",
+            tps_trend="\u2192",
+        )
+        assert row[5] == "1.00 \u2192"
+        assert row[6] == "20.00 \u2192"
+
+    def test_without_trend(self):
+        tag_model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"details": {}, "capabilities": [], "model_info": {}}
+        benchmark = BenchmarkResult(ttft=1.0, tps=20.0, error=None, runs=[])
+        row, _ = process_single_model(
+            tag_model,
+            show_data,
+            benchmark,
+            show_ttft=True,
+            show_tps=True,
+            verbose=False,
+            num_runs=1,
+        )
+        assert len(row) == 7
+        assert row[5] == "1.00"
+        assert row[6] == "20.00"
 
 
 class TestSizeValue:
@@ -777,6 +861,32 @@ class TestBuildColoredTable:
         )
         assert table is not None
 
+    def test_inline_trend_arrows(self):
+        rows = [
+            [
+                "model",
+                "7B",
+                "4096",
+                "Q4_0",
+                "completion",
+                "0.50 \u2191",
+                "30.00 \u2191",
+            ],
+            [
+                "model",
+                "7B",
+                "4096",
+                "Q4_0",
+                "completion",
+                "2.00 \u2193",
+                "10.00 \u2193",
+            ],
+        ]
+        table = _build_colored_table(
+            "Test", show_ttft=True, show_tps=True, verbose=False, num_runs=1, rows=rows
+        )
+        assert table is not None
+
 
 class TestBenchmarkModelTask:
     @pytest.mark.asyncio
@@ -929,6 +1039,279 @@ class TestCollectPending:
         assert len(pending) == 0
         assert 0 in completed_rows
         assert completed_exports[0].model == "llama3"
+
+
+class TestBenchmarkModelTaskWithPreviousRun:
+    @pytest.mark.asyncio
+    async def test_previous_run_improving(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=0.5,
+            tps=30.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 0.5, "tps": 30.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert idx == 0
+        assert len(errors) == 0
+        assert row[5] == "0.50 \u2191"
+        assert row[6] == "30.00 \u2191"
+
+    @pytest.mark.asyncio
+    async def test_previous_run_degrading(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=2.0,
+            tps=10.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 2.0, "tps": 10.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert row[5] == "2.00 \u2193"
+        assert row[6] == "10.00 \u2193"
+
+    @pytest.mark.asyncio
+    async def test_previous_run_no_ttft_benchmarked(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=None,
+            tps=25.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": None, "tps": 25.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert row[5] == "n/a"
+        assert row[6] == "25.00 \u2191"
+
+    @pytest.mark.asyncio
+    async def test_previous_run_stable(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=1.0,
+            tps=20.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 20.0, "error": None}],
+        )
+        previous_run = {"ttft": 0.98, "tps": 20.5}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert "\u2192" in row[5]
+        assert "\u2192" in row[6]
+
+    @pytest.mark.asyncio
+    async def test_previous_run_mixed_trends(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=0.5,
+            tps=15.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 0.5, "tps": 15.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert row[5] == "0.50 \u2191"
+        assert row[6] == "15.00 \u2193"
+
+    @pytest.mark.asyncio
+    async def test_previous_run_no_benchmark_requested(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        idx, row, export_row, errors = await _benchmark_model_task(
+            0,
+            model,
+            show_data,
+            AsyncMock(),
+            config,
+            "http://localhost:11434",
+            show_ttft=False,
+            show_tps=False,
+            verbose=False,
+            chat_headers=None,
+            num_predict=None,
+            semaphore=asyncio.Semaphore(1),
+            previous_run=previous_run,
+        )
+        assert len(row) == 5
+        assert len(errors) == 0
+
+    @pytest.mark.asyncio
+    async def test_previous_run_only_ttft(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=0.5,
+            tps=30.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 0.5, "tps": 30.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=True,
+                show_tps=False,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert row[5] == "0.50 \u2191"
+        assert len(row) == 6
+
+    @pytest.mark.asyncio
+    async def test_previous_run_only_tps(self):
+        model = {"name": "llama3", "details": {}, "modified_at": ""}
+        show_data = {"capabilities": ["completion"], "details": {}, "model_info": {}}
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        bench_result = BenchmarkResult(
+            ttft=0.5,
+            tps=30.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 0.5, "tps": 30.0, "error": None}],
+        )
+        previous_run = {"ttft": 1.0, "tps": 20.0}
+        with patch(
+            "ometer.display.benchmark_model",
+            new_callable=AsyncMock,
+            return_value=bench_result,
+        ):
+            idx, row, export_row, errors = await _benchmark_model_task(
+                0,
+                model,
+                show_data,
+                AsyncMock(),
+                config,
+                "http://localhost:11434",
+                show_ttft=False,
+                show_tps=True,
+                verbose=False,
+                chat_headers=None,
+                num_predict=None,
+                semaphore=asyncio.Semaphore(1),
+                previous_run=previous_run,
+            )
+        assert row[5] == "30.00 \u2191"
+        assert len(row) == 6
 
 
 class TestStreamTable:
@@ -1495,3 +1878,162 @@ class TestStreamTable:
         assert len(model_column_cells) == 2
         assert str(model_column_cells[0]) == "llama3"
         assert str(model_column_cells[1]) == "mistral"
+
+    @pytest.mark.asyncio
+    async def test_with_previous_run_prefetch(self):
+        model = {
+            "name": "llama3",
+            "modified_at": "2024-01-01T00:00:00Z",
+            "details": {"parameter_size": "8B"},
+        }
+        show_data = {
+            "capabilities": ["completion"],
+            "details": {},
+            "model_info": {"model.context_length": 4096},
+        }
+        bench_result = BenchmarkResult(
+            ttft=1.0,
+            tps=50.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 50.0, "error": None}],
+        )
+        config = Config("http://localhost:11434", "https://ollama.com", "", 1, 1)
+        client = AsyncMock()
+        with (
+            patch(
+                "ometer.display.fetch_model_show",
+                new_callable=AsyncMock,
+                return_value=show_data,
+            ),
+            patch(
+                "ometer.display.benchmark_model",
+                new_callable=AsyncMock,
+                return_value=bench_result,
+            ),
+            patch("ometer.display.get_connection"),
+            patch("ometer.display.get_previous_run", return_value=None),
+        ):
+            await stream_table(
+                client,
+                config,
+                "http://localhost:11434",
+                [model],
+                "Test",
+                show_ttft=True,
+                show_tps=True,
+                verbose=False,
+                mode="local",
+            )
+
+
+class TestBuildHistoryTable:
+    def test_empty_list(self, capsys):
+        build_history_table([], verbose=False)
+        captured = capsys.readouterr()
+        assert "No history found" in captured.out
+
+    def test_summary_view(self, capsys):
+        rows = [
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 0.5,
+                "tps": 30.0,
+                "error": None,
+                "prompts": ["hi"],
+            },
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-01-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 1.0,
+                "tps": 20.0,
+                "error": None,
+                "prompts": ["hi"],
+            },
+            {
+                "model_name": "mistral",
+                "timestamp": "2025-03-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 4096,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 2.0,
+                "tps": 15.0,
+                "error": None,
+                "prompts": [],
+            },
+        ]
+        build_history_table(rows, verbose=False)
+        captured = capsys.readouterr()
+        assert "llama3" in captured.out
+        assert "mistral" in captured.out
+        assert "2025-06-01" in captured.out  # latest for llama3
+        assert "2025-01-01" not in captured.out  # older run hidden
+
+    def test_detailed_view(self, capsys):
+        rows = [
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 0.5,
+                "tps": 30.0,
+                "error": None,
+                "prompts": ["hi"],
+            },
+        ]
+        build_history_table(rows, verbose=True)
+        captured = capsys.readouterr()
+        assert "2025-06-01" in captured.out
+        assert "8192" in captured.out
+        assert "local" in captured.out
+
+    def test_detailed_view_with_error(self, capsys):
+        rows = [
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": None,
+                "tps": None,
+                "error": "timeout",
+                "prompts": ["hi"],
+            },
+        ]
+        build_history_table(rows, verbose=True)
+        captured = capsys.readouterr()
+        assert "timeout" in captured.out
+        assert "n/a" in captured.out
+
+    def test_summary_view_with_empty_prompts(self, capsys):
+        rows = [
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 1.0,
+                "tps": 20.0,
+                "error": None,
+                "prompts": [],
+            },
+        ]
+        build_history_table(rows, verbose=False)
+        captured = capsys.readouterr()
+        assert "?" in captured.out  # unknown number of runs

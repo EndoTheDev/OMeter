@@ -5,7 +5,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from ometer.cli import build_parser, main, main_entrypoint, match_model, resolve_mode
+from ometer.cli import (
+    MainOptions,
+    build_parser,
+    main,
+    main_entrypoint,
+    match_model,
+    resolve_mode,
+)
 from ometer.config import Config
 from ometer.export import ExportRow
 
@@ -111,6 +118,10 @@ class TestBuildParser:
                 main_entrypoint()
         finally:
             sys.argv = old_argv
+
+    def test_history_flag(self):
+        args = self._parse("--history")
+        assert args.history is True
 
 
 class TestResolveMode:
@@ -285,7 +296,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, None, config)
+            options = MainOptions(mode="local")
+            await main(config, options)
             mock_stream.assert_called_once()
             assert mock_stream.call_args[0][3] == _LOCAL_MODELS
 
@@ -302,7 +314,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, None, config, 64)
+            options = MainOptions(mode="local", num_predict=64)
+            await main(config, options)
             assert mock_stream.call_args.kwargs["num_predict"] == 64
 
     @pytest.mark.asyncio
@@ -317,7 +330,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main("local", False, False, False, None, config)
+            options = MainOptions(mode="local")
+            await main(config, options)
             mock_console.print.assert_called()
             assert any(
                 "Skipping local" in str(c) for c in mock_console.print.call_args_list
@@ -336,7 +350,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("cloud", False, False, False, None, config)
+            options = MainOptions(mode="cloud")
+            await main(config, options)
             mock_stream.assert_called_once()
             assert mock_stream.call_args[0][3] == _CLOUD_MODELS
 
@@ -352,7 +367,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main("cloud", False, False, False, None, config)
+            options = MainOptions(mode="cloud")
+            await main(config, options)
             mock_console.print.assert_called()
             assert any(
                 "Failed to fetch cloud" in str(c)
@@ -371,7 +387,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main("cloud", True, False, False, None, config)
+            options = MainOptions(mode="cloud", show_ttft=True)
+            await main(config, options)
             assert any(
                 "OLLAMA_CLOUD_API_KEY" in str(c)
                 for c in mock_console.print.call_args_list
@@ -390,7 +407,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("cloud", False, True, False, None, config)
+            options = MainOptions(mode="cloud", show_tps=True)
+            await main(config, options)
             assert mock_stream.call_args[0][8] == {"Authorization": "Bearer secret"}
 
     @pytest.mark.asyncio
@@ -406,7 +424,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, ["llama3"], config)
+            options = MainOptions(mode="local", target_models=["llama3"])
+            await main(config, options)
             filtered = mock_stream.call_args[0][3]
             assert len(filtered) == 1
             assert filtered[0]["name"] == "llama3"
@@ -432,7 +451,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, ["llama3"], config)
+            options = MainOptions(mode="local", target_models=["llama3"])
+            await main(config, options)
             filtered = mock_stream.call_args[0][3]
             assert len(filtered) == 1
             assert filtered[0]["name"] == "llama3:latest"
@@ -451,7 +471,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, ["llama3", "phi3"], config)
+            options = MainOptions(mode="local", target_models=["llama3", "phi3"])
+            await main(config, options)
             filtered = mock_stream.call_args[0][3]
             assert len(filtered) == 2
             names = [m["name"] for m in filtered]
@@ -469,8 +490,9 @@ class TestMain:
             ),
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
         ):
+            options = MainOptions(mode="cloud", target_models=["nonexistent"])
             with pytest.raises(SystemExit):
-                await main("cloud", False, False, False, ["nonexistent"], config)
+                await main(config, options)
 
     @pytest.mark.asyncio
     async def test_target_model_suffix_in_title(self):
@@ -485,7 +507,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("local", False, False, False, ["llama3"], config)
+            options = MainOptions(mode="local", target_models=["llama3"])
+            await main(config, options)
             title = mock_stream.call_args[0][4]
             assert "llama3" in title
 
@@ -502,7 +525,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main("cloud", False, False, False, ["mistral"], config)
+            options = MainOptions(mode="cloud", target_models=["mistral"])
+            await main(config, options)
             title = mock_stream.call_args[0][4]
             assert "mistral" in title
 
@@ -514,7 +538,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main("local", False, False, False, None, config)
+            options = MainOptions(mode="local")
+            await main(config, options)
             assert any(
                 "No local models" in str(c) for c in mock_console.print.call_args_list
             )
@@ -527,7 +552,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main("cloud", False, False, False, None, config)
+            options = MainOptions(mode="cloud")
+            await main(config, options)
             assert any(
                 "No cloud models" in str(c) for c in mock_console.print.call_args_list
             )
@@ -547,7 +573,8 @@ class TestMain:
             patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
             patch("ometer.cli.console") as mock_console,
         ):
-            await main(None, False, False, False, None, config)
+            options = MainOptions(mode=None)
+            await main(config, options)
             mock_console.print.assert_any_call()
 
     @pytest.mark.asyncio
@@ -569,7 +596,8 @@ class TestMain:
                 "ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]
             ) as mock_stream,
         ):
-            await main(None, False, False, False, None, config)
+            options = MainOptions(mode=None)
+            await main(config, options)
             assert mock_stream.call_count == 2
 
     @pytest.mark.asyncio
@@ -599,16 +627,13 @@ class TestMain:
             ),
             patch("ometer.cli.export_results") as mock_export,
         ):
-            await main(
-                "local",
-                True,
-                True,
-                False,
-                None,
-                config,
+            options = MainOptions(
+                mode="local",
+                show_ttft=True,
+                show_tps=True,
                 export_fmt="json",
-                export_path=None,
             )
+            await main(config, options)
             mock_export.assert_called_once()
             call_args = mock_export.call_args
             assert call_args[0][0] == [export_row]
@@ -643,16 +668,14 @@ class TestMain:
             ),
             patch("ometer.cli.export_results") as mock_export,
         ):
-            await main(
-                "local",
-                True,
-                True,
-                False,
-                None,
-                config,
+            options = MainOptions(
+                mode="local",
+                show_ttft=True,
+                show_tps=True,
                 export_fmt="csv",
                 export_path=path,
             )
+            await main(config, options)
             mock_export.assert_called_once()
             assert mock_export.call_args[0][1] == "csv"
             assert mock_export.call_args[0][2] == path
@@ -670,17 +693,157 @@ class TestMain:
             patch("ometer.cli.console"),
             patch("ometer.cli.export_results") as mock_export,
         ):
-            await main(
-                "local",
-                True,
-                True,
-                False,
-                None,
-                config,
+            options = MainOptions(
+                mode="local",
+                show_ttft=True,
+                show_tps=True,
                 export_fmt="json",
-                export_path=None,
             )
+            await main(config, options)
             mock_export.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_history_mode_calls_build_history_table(self):
+        config = _make_config()
+        mock_rows = [{"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"}]
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.build_history_table") as mock_build,
+        ):
+            options = MainOptions(show_history=True)
+            await main(config, options)
+            mock_build.assert_called_once_with(mock_rows, verbose=False)
+
+    @pytest.mark.asyncio
+    async def test_history_mode_verbose_with_filter(self):
+        config = _make_config()
+        mock_rows = [
+            {"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"},
+            {"model_name": "mistral", "timestamp": "2025-01-01T00:00:00+00:00"},
+        ]
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.build_history_table") as mock_build,
+            patch("ometer.cli.console") as mock_console,
+        ):
+            options = MainOptions(
+                show_history=True, verbose=True, target_models=["llama3"]
+            )
+            await main(config, options)
+            mock_build.assert_called_once_with(
+                [{"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"}],
+                verbose=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_auto_saves_benchmark_results(self):
+        config = _make_config(num_runs=1, num_parallel=1)
+        export_row = ExportRow(
+            model="llama3",
+            size="7B",
+            context="8192",
+            quant="Q4_0",
+            capabilities="completion",
+            ttft=1.0,
+            tps=20.0,
+            error=None,
+            runs=[{"prompt": "hi", "ttft": 1.0, "tps": 20.0, "error": None}],
+            modified_at="2025-01-01T00:00:00Z",
+            mode="local",
+        )
+        with (
+            patch(
+                "ometer.cli.fetch_tags",
+                new_callable=AsyncMock,
+                return_value=[{"name": "llama3", "details": {}}],
+            ),
+            patch(
+                "ometer.cli.stream_table",
+                new_callable=AsyncMock,
+                return_value=[export_row],
+            ),
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.save_run") as mock_save,
+            patch("ometer.cli.build_run_data") as mock_build_data,
+            patch("ometer.cli.console"),
+        ):
+            mock_build_data.return_value = {"id": "test-uuid"}
+            options = MainOptions(mode="local", show_ttft=True)
+            await main(config, options)
+            mock_save.assert_called_once()
+            mock_conn.return_value.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_does_not_save_without_benchmarks(self):
+        config = _make_config(num_runs=1)
+        with (
+            patch(
+                "ometer.cli.fetch_tags",
+                new_callable=AsyncMock,
+                return_value=[{"name": "llama3", "details": {}}],
+            ),
+            patch("ometer.cli.stream_table", new_callable=AsyncMock, return_value=[]),
+            patch("ometer.cli.save_run") as mock_save,
+        ):
+            options = MainOptions()
+            await main(config, options)
+            mock_save.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_history_no_rows_shows_message(self):
+        config = _make_config()
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=[]),
+            patch("ometer.cli.console") as mock_console,
+        ):
+            options = MainOptions(show_history=True)
+            await main(config, options)
+            mock_console.print.assert_called_once_with("[dim]No history found.[/dim]")
+
+    @pytest.mark.asyncio
+    async def test_history_export_json(self):
+        config = _make_config()
+        mock_rows = [{"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"}]
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.export_history") as mock_export,
+        ):
+            options = MainOptions(show_history=True, export_fmt="json", verbose=True)
+            await main(config, options)
+            mock_export.assert_called_once_with(mock_rows, "json", None, verbose=True)
+
+    @pytest.mark.asyncio
+    async def test_history_export_csv_to_file(self):
+        config = _make_config()
+        mock_rows = [{"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"}]
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.export_history") as mock_export,
+        ):
+            options = MainOptions(
+                show_history=True, export_fmt="csv", export_path="/tmp/hist.csv"
+            )
+            await main(config, options)
+            mock_export.assert_called_once_with(
+                mock_rows, "csv", "/tmp/hist.csv", verbose=False
+            )
+
+    @pytest.mark.asyncio
+    async def test_history_export_with_empty_rows(self):
+        config = _make_config()
+        with (
+            patch("ometer.cli.get_connection") as mock_conn,
+            patch("ometer.cli.get_latest_per_model", return_value=[]),
+            patch("ometer.cli.export_history") as mock_export,
+        ):
+            options = MainOptions(show_history=True, export_fmt="json")
+            await main(config, options)
+            mock_export.assert_called_once_with([], "json", None, verbose=False)
 
 
 def _close_coro(coro):
@@ -780,7 +943,7 @@ class TestMainEntrypoint:
         captured = {}
 
         def _run_and_capture(coro):
-            captured["args"] = coro.cr_frame.f_locals
+            captured["options"] = coro.cr_frame.f_locals["options"]
             coro.close()
 
         with (
@@ -793,15 +956,15 @@ class TestMainEntrypoint:
             from ometer.cli import main_entrypoint
 
             main_entrypoint()
-            assert captured["args"]["export_fmt"] == "json"
-            assert captured["args"]["export_path"] is None
+            assert captured["options"].export_fmt == "json"
+            assert captured["options"].export_path is None
 
     def test_json_flag_with_path_resolution(self):
         config = _make_config()
         captured = {}
 
         def _run_and_capture(coro):
-            captured["args"] = coro.cr_frame.f_locals
+            captured["options"] = coro.cr_frame.f_locals["options"]
             coro.close()
 
         with (
@@ -814,15 +977,15 @@ class TestMainEntrypoint:
             from ometer.cli import main_entrypoint
 
             main_entrypoint()
-            assert captured["args"]["export_fmt"] == "json"
-            assert captured["args"]["export_path"] == "/tmp/out.json"
+            assert captured["options"].export_fmt == "json"
+            assert captured["options"].export_path == "/tmp/out.json"
 
     def test_csv_flag_resolution(self):
         config = _make_config()
         captured = {}
 
         def _run_and_capture(coro):
-            captured["args"] = coro.cr_frame.f_locals
+            captured["options"] = coro.cr_frame.f_locals["options"]
             coro.close()
 
         with (
@@ -835,28 +998,23 @@ class TestMainEntrypoint:
             from ometer.cli import main_entrypoint
 
             main_entrypoint()
-            assert captured["args"]["export_fmt"] == "csv"
-            assert captured["args"]["export_path"] is None
+            assert captured["options"].export_fmt == "csv"
+            assert captured["options"].export_path is None
 
     def test_prompts_flag_passed_through(self):
         config = _make_config()
-        captured = {}
-
-        def _run_and_capture(coro):
-            captured["args"] = coro.cr_frame.f_locals
-            coro.close()
 
         with (
             patch("ometer.cli.Config") as mock_config_cls,
             patch("ometer.cli.resolve_mode", return_value="local"),
-            patch("ometer.cli.asyncio.run", side_effect=_run_and_capture),
+            patch("ometer.cli.asyncio.run", side_effect=_close_coro),
             patch("sys.argv", ["ometer", "--local", "--prompts", "hello"]),
         ):
             mock_config_cls.from_env.return_value = config
             from ometer.cli import main_entrypoint
 
             main_entrypoint()
-            assert captured["args"]["prompts"] == ["hello"]
+            assert mock_config_cls.from_env.call_args.kwargs.get("prompts") == ["hello"]
 
     def test_prompts_flag_calls_from_env_with_inline_prompt(self):
         config = _make_config()
@@ -898,3 +1056,38 @@ class TestMainEntrypoint:
                 "world",
                 "foo bar",
             ]
+
+    def test_history_early_return_skips_resolve_mode(self):
+        config = _make_config()
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.resolve_mode") as mock_resolve,
+            patch("ometer.cli.asyncio.run", side_effect=_close_coro),
+            patch("sys.argv", ["ometer", "--history"]),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            main_entrypoint()
+            mock_resolve.assert_not_called()
+
+    def test_history_early_return_with_export(self):
+        config = _make_config()
+        captured = {}
+
+        def _capture_opts(coro):
+            captured["options"] = coro.cr_frame.f_locals["options"]
+            coro.close()
+
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.asyncio.run", side_effect=_capture_opts),
+            patch("sys.argv", ["ometer", "--history", "--json", "--verbose"]),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            main_entrypoint()
+            assert captured["options"].show_history is True
+            assert captured["options"].export_fmt == "json"
+            assert captured["options"].verbose is True

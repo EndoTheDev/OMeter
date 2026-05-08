@@ -16,6 +16,7 @@ from rich.text import Text
 from ometer.api import BenchmarkResult, benchmark_model, fetch_model_show
 from ometer.config import Config
 from ometer.export import ExportRow
+from ometer.history import trend_arrow, get_previous_run, get_connection
 
 console = Console()
 
@@ -155,7 +156,11 @@ def format_float_or_na(val: float | None) -> str:
 
 
 def build_table(
-    title: str, show_ttft: bool, show_tps: bool, verbose: bool, num_runs: int
+    title: str,
+    show_ttft: bool,
+    show_tps: bool,
+    verbose: bool,
+    num_runs: int,
 ) -> Table:
     table = Table(title=title, title_style="bold cyan", show_lines=True)
     table.add_column("Model", style="cyan", no_wrap=True)
@@ -177,7 +182,10 @@ def build_table(
 
 
 def _column_indices(
-    show_ttft: bool, show_tps: bool, verbose: bool, num_runs: int
+    show_ttft: bool,
+    show_tps: bool,
+    verbose: bool,
+    num_runs: int,
 ) -> tuple[list[int], list[int]]:
     ttft_indices: list[int] = []
     tps_indices: list[int] = []
@@ -198,8 +206,9 @@ def _column_indices(
 
 
 def _parse_value(cell: str) -> float | None:
+    cleaned = cell.strip().rstrip("\u2191\u2193\u2192").strip()
     try:
-        return float(cell)
+        return float(cleaned)
     except ValueError:
         return None
 
@@ -286,6 +295,9 @@ def process_single_model(
     verbose: bool,
     num_runs: int,
     export_only: bool = False,
+    mode: str = "",
+    ttft_trend: str = "",
+    tps_trend: str = "",
 ) -> tuple[list[str], ExportRow]:
     model_name = tag_model["name"]
     tag_details = tag_model.get("details", {})
@@ -313,6 +325,7 @@ def process_single_model(
         error=benchmark.error,
         runs=benchmark.runs,
         modified_at=tag_model.get("modified_at", ""),
+        mode=mode,
     )
 
     if export_only:
@@ -335,7 +348,10 @@ def process_single_model(
                     row.append("err")
                 else:
                     row.append(format_float_or_na(ttft))
-        row.append(format_float_or_na(benchmark.ttft))
+        val = format_float_or_na(benchmark.ttft)
+        if ttft_trend and benchmark.ttft is not None:
+            val = f"{val} {ttft_trend}"
+        row.append(val)
     if show_tps:
         if verbose:
             for i in range(num_runs):
@@ -349,7 +365,10 @@ def process_single_model(
                     row.append("err")
                 else:
                     row.append(format_float_or_na(tps))
-        row.append(format_float_or_na(benchmark.tps))
+        val = format_float_or_na(benchmark.tps)
+        if tps_trend and benchmark.tps is not None:
+            val = f"{val} {tps_trend}"
+        row.append(val)
 
     return row, export_row
 
@@ -368,13 +387,15 @@ async def _benchmark_model_task(
     num_predict: int | None,
     semaphore: asyncio.Semaphore,
     export_only: bool = False,
+    mode: str = "",
+    previous_run: dict[str, Any] | None = None,
 ) -> tuple[int, list[str], ExportRow, list[str]]:
     show_data: dict[str, Any] = {}
     errors: list[str] = []
     if isinstance(show_result, BaseException):
         errors.append(f"{model['name']} /api/show failed: {show_result}")
     else:
-        show_data = show_result  # type: ignore
+        show_data = show_result
 
     bench = BenchmarkResult(ttft=None, tps=None, error=None)
     if show_ttft or show_tps:
@@ -391,6 +412,18 @@ async def _benchmark_model_task(
         if bench.error:
             errors.append(f"{model['name']}: {bench.error}")
 
+    ttft_trend = ""
+    tps_trend = ""
+    if previous_run is not None:
+        if show_ttft and bench.ttft is not None and previous_run["ttft"] is not None:
+            ttft_trend = trend_arrow(
+                bench.ttft, previous_run["ttft"], lower_is_better=True
+            )
+        if show_tps and bench.tps is not None and previous_run["tps"] is not None:
+            tps_trend = trend_arrow(
+                bench.tps, previous_run["tps"], lower_is_better=False
+            )
+
     row, export_row = process_single_model(
         model,
         show_data,
@@ -400,6 +433,9 @@ async def _benchmark_model_task(
         verbose,
         config.num_runs,
         export_only=export_only,
+        mode=mode,
+        ttft_trend=ttft_trend,
+        tps_trend=tps_trend,
     )
     return idx, row, export_row, errors
 
@@ -435,6 +471,7 @@ async def stream_table(
     num_predict: int | None = None,
     export_only: bool = False,
     sort_spec: SortSpec | None = None,
+    mode: str = "",
 ) -> list[ExportRow]:
     table = build_table(title, show_ttft, show_tps, verbose, config.num_runs)
 
@@ -447,6 +484,10 @@ async def stream_table(
     show_tasks = [asyncio.create_task(_throttled_show(m)) for m in models]
     with console.status(f"Fetching details for {len(models)} model(s)…"):
         show_results = await asyncio.gather(*show_tasks, return_exceptions=True)
+
+    conn = get_connection()
+    previous_runs = [get_previous_run(conn, m["name"]) for m in models]
+    conn.close()
 
     pending: set[asyncio.Task[tuple[int, list[str], ExportRow, list[str]]]] = set()
     for idx, (model, show_result) in enumerate(zip(models, show_results)):
@@ -465,6 +506,8 @@ async def stream_table(
                 num_predict,
                 semaphore,
                 export_only=export_only,
+                mode=mode,
+                previous_run=previous_runs[idx],
             )
         )
         pending.add(task)
@@ -559,3 +602,73 @@ async def stream_table(
         console.print(f"[yellow]⚠ {err}[/yellow]")
 
     return ordered_exports
+
+
+def build_history_table(
+    history_rows: list[dict],
+    verbose: bool,
+) -> None:
+    if not history_rows:
+        console.print("[dim]No history found.[/dim]")
+        return
+
+    if verbose:
+        table = Table(
+            title="Benchmark History (detailed)",
+            title_style="bold cyan",
+            show_lines=True,
+        )
+        table.add_column("Model", style="cyan", no_wrap=True)
+        table.add_column("Timestamp", style="white")
+        table.add_column("Size", justify="right", style="green")
+        table.add_column("Ctx", justify="right", style="yellow")
+        table.add_column("Quant", style="magenta")
+        table.add_column("Mode", style="blue")
+        table.add_column("TTFT", justify="right", style="blue")
+        table.add_column("TPS", justify="right", style="bright_red")
+        table.add_column("Error", style="red")
+
+        for r in history_rows:
+            table.add_row(
+                r["model_name"],
+                r["timestamp"][:19].replace("T", " "),
+                r["model_size"] or "",
+                str(r["context_length"] or ""),
+                r["quantization"] or "",
+                r["mode"] or "",
+                f'{r["ttft"]:.2f}' if r["ttft"] is not None else "n/a",
+                f'{r["tps"]:.2f}' if r["tps"] is not None else "n/a",
+                r["error"] or "",
+            )
+    else:
+        table = Table(
+            title="Benchmark History (latest per model)",
+            title_style="bold cyan",
+            show_lines=True,
+        )
+        table.add_column("Model", style="cyan", no_wrap=True)
+        table.add_column("Last Run", style="white")
+        table.add_column("Runs", justify="right")
+        table.add_column("TTFT", justify="right", style="blue")
+        table.add_column("TPS", justify="right", style="bright_red")
+        table.add_column("Error", style="red")
+
+        seen: dict[str, dict] = {}
+        for r in history_rows:
+            name = r["model_name"]
+            if name not in seen or r["timestamp"] > seen[name]["timestamp"]:
+                seen[name] = r
+
+        for r in sorted(seen.values(), key=lambda x: x["timestamp"], reverse=True):
+            prompts = r.get("prompts", [])
+            num_runs = str(len(prompts)) if prompts else "?"
+            table.add_row(
+                r["model_name"],
+                r["timestamp"][:19].replace("T", " "),
+                num_runs,
+                f'{r["ttft"]:.2f}' if r["ttft"] is not None else "n/a",
+                f'{r["tps"]:.2f}' if r["tps"] is not None else "n/a",
+                r["error"] or "",
+            )
+
+    console.print(table)
