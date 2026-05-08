@@ -43,6 +43,10 @@ class TestBuildParser:
         assert args.runs == 1
         assert args.parallel == 3
 
+    def test_prompts_flag(self):
+        args = self._parse("--prompts", "hello world")
+        assert args.prompts == ["hello world"]
+
     def test_invalid_runs_rejected(self):
         with pytest.raises(SystemExit):
             self._parse("--runs", "5")
@@ -99,6 +103,7 @@ class TestBuildParser:
 
     def test_reverse_without_sort_rejected(self):
         import sys
+
         old_argv = sys.argv
         try:
             sys.argv = ["ometer", "--reverse"]
@@ -717,6 +722,25 @@ class TestMainEntrypoint:
                 main_entrypoint()
             assert any("Canceled" in str(c) for c in mock_console.print.call_args_list)
 
+    def test_value_error_in_asyncio_run(self):
+        config = _make_config()
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.resolve_mode", return_value="local"),
+            patch("ometer.cli.asyncio.run", side_effect=ValueError("bad sort field")),
+            patch("ometer.cli.console") as mock_console,
+            patch("sys.argv", ["ometer", "--local"]),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            with pytest.raises(SystemExit) as exc_info:
+                main_entrypoint()
+            assert exc_info.value.code == 1
+            assert any(
+                "bad sort field" in str(c) for c in mock_console.print.call_args_list
+            )
+
     def test_keyboard_interrupt(self):
         config = _make_config()
         with (
@@ -813,3 +837,64 @@ class TestMainEntrypoint:
             main_entrypoint()
             assert captured["args"]["export_fmt"] == "csv"
             assert captured["args"]["export_path"] is None
+
+    def test_prompts_flag_passed_through(self):
+        config = _make_config()
+        captured = {}
+
+        def _run_and_capture(coro):
+            captured["args"] = coro.cr_frame.f_locals
+            coro.close()
+
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.resolve_mode", return_value="local"),
+            patch("ometer.cli.asyncio.run", side_effect=_run_and_capture),
+            patch("sys.argv", ["ometer", "--local", "--prompts", "hello"]),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            main_entrypoint()
+            assert captured["args"]["prompts"] == ["hello"]
+
+    def test_prompts_flag_calls_from_env_with_inline_prompt(self):
+        config = _make_config()
+
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.resolve_mode", return_value="local"),
+            patch("ometer.cli.asyncio.run", side_effect=_close_coro),
+            patch("sys.argv", ["ometer", "--local", "--prompts", "my prompt"]),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            main_entrypoint()
+            assert mock_config_cls.from_env.call_args.kwargs.get("prompts") == [
+                "my prompt"
+            ]
+
+    def test_prompts_flag_reads_file(self, tmp_path):
+        config = _make_config()
+        prompt_file = tmp_path / "prompts.txt"
+        prompt_file.write_text("hello\n\nworld\n  foo bar  \n")
+
+        with (
+            patch("ometer.cli.Config") as mock_config_cls,
+            patch("ometer.cli.resolve_mode", return_value="local"),
+            patch("ometer.cli.asyncio.run", side_effect=_close_coro),
+            patch(
+                "sys.argv",
+                ["ometer", "--local", "--prompts", str(prompt_file)],
+            ),
+        ):
+            mock_config_cls.from_env.return_value = config
+            from ometer.cli import main_entrypoint
+
+            main_entrypoint()
+            assert mock_config_cls.from_env.call_args.kwargs.get("prompts") == [
+                "hello",
+                "world",
+                "foo bar",
+            ]

@@ -28,6 +28,7 @@ async def main(
     export_path: str | None = None,
     sort: str | None = None,
     reverse: bool = False,
+    prompts: list[str] | None = None,
 ) -> None:
     export_only = export_fmt is not None
     chat_headers: dict[str, str] | None = None
@@ -194,6 +195,13 @@ def build_parser(prog: str = "ometer") -> argparse.ArgumentParser:
         help="Number of benchmark prompts per model (1-3)",
     )
     parser.add_argument(
+        "--prompts",
+        type=str,
+        nargs=1,
+        default=None,
+        help="Custom benchmark prompt(s). Pass a filename to read one prompt per line, or a single inline prompt. Overrides --runs.",
+    )
+    parser.add_argument(
         "--parallel",
         type=int,
         default=None,
@@ -270,7 +278,21 @@ def main_entrypoint() -> None:
     if args.reverse and not args.sort:
         parser.error("--reverse requires --sort")
 
-    config = Config.from_env(runs=args.runs, parallel=args.parallel)
+    raw_prompt = args.prompts[0] if args.prompts else None
+    if raw_prompt is not None:
+        path = Path(raw_prompt)
+        if path.is_file():
+            resolved_prompts = [
+                line.strip() for line in path.read_text().splitlines() if line.strip()
+            ]
+        else:
+            resolved_prompts = [raw_prompt]
+    else:
+        resolved_prompts = None
+
+    config = Config.from_env(
+        runs=args.runs, parallel=args.parallel, prompts=resolved_prompts
+    )
 
     export_fmt = None
     export_path = None
@@ -316,6 +338,7 @@ def main_entrypoint() -> None:
                 export_path,
                 args.sort,
                 args.reverse,
+                prompts=resolved_prompts,
             )
         )
     except ValueError as e:

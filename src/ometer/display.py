@@ -42,8 +42,7 @@ class SortSpec:
         field = raw.strip()
         if field not in SORT_FIELDS:
             raise ValueError(
-                f"Unknown sort field '{field}'. "
-                f"Expected: {', '.join(SORT_FIELDS)}"
+                f"Unknown sort field '{field}'. " f"Expected: {', '.join(SORT_FIELDS)}"
             )
         natural_asc = SORT_FIELDS[field]
         ascending = not natural_asc if reverse else natural_asc
@@ -98,7 +97,9 @@ def sort_results(
     if spec is None:
         return rows, exports
     paired = sorted(
-        zip(rows, exports), key=lambda pair: _sort_key(spec, pair[1]), reverse=not spec.ascending
+        zip(rows, exports),
+        key=lambda pair: _sort_key(spec, pair[1]),
+        reverse=not spec.ascending,
     )
     new_rows, new_exports = zip(*paired) if paired else ([], [])
     return list(new_rows), list(new_exports)
@@ -111,18 +112,25 @@ def extract_context_length(model_info: dict[str, Any]) -> int:
     return 0
 
 
+def _format_int_size(size_int: int, divisor: int, suffix: str) -> str:
+    val = size_int / divisor
+    if val == int(val):
+        return f"{int(val)}{suffix}"
+    return f"{val:.1f}{suffix}"
+
+
 def format_size(parameter_size: str | None, model_name: str) -> str:
     if parameter_size:
         try:
             size_int = int(parameter_size)
             if size_int >= 1_000_000_000_000:
-                return f"{size_int // 1_000_000_000_000}T"
+                return _format_int_size(size_int, 1_000_000_000_000, "T")
             if size_int >= 1_000_000_000:
-                return f"{size_int // 1_000_000_000}B"
+                return _format_int_size(size_int, 1_000_000_000, "B")
             if size_int >= 1_000_000:
-                return f"{size_int // 1_000_000}M"
+                return _format_int_size(size_int, 1_000_000, "M")
             return str(size_int)
-        except (ValueError, TypeError):
+        except ValueError:
             pass
 
         m = re.match(r"(\d+(?:\.\d+)?)\s*([BKMGT])", str(parameter_size), re.IGNORECASE)
@@ -372,7 +380,13 @@ async def _benchmark_model_task(
     if show_ttft or show_tps:
         async with semaphore:
             bench = await benchmark_model(
-                client, config, base_url, model["name"], show_data, chat_headers, num_predict
+                client,
+                config,
+                base_url,
+                model["name"],
+                show_data,
+                chat_headers,
+                num_predict,
             )
         if bench.error:
             errors.append(f"{model['name']}: {bench.error}")

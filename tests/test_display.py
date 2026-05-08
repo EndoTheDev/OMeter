@@ -49,11 +49,23 @@ class TestFormatSize:
     def test_trillion(self):
         assert format_size("1000000000000", "model") == "1T"
 
+    def test_trillion_decimal(self):
+        assert format_size("1600000000000", "model") == "1.6T"
+
+    def test_trillion_small_decimal(self):
+        assert format_size("1001000000000", "model") == "1.0T"
+
     def test_billion(self):
         assert format_size("7000000000", "model") == "7B"
 
+    def test_billion_decimal(self):
+        assert format_size("7800000000", "model") == "7.8B"
+
     def test_million(self):
         assert format_size("300000000", "model") == "300M"
+
+    def test_million_decimal(self):
+        assert format_size("5500000", "model") == "5.5M"
 
     def test_small_number(self):
         assert format_size("500", "model") == "500"

@@ -30,16 +30,26 @@ class Config:
         cloud_api_key: str,
         num_runs: int,
         num_parallel: int,
+        prompts: list[str] | None = None,
     ) -> None:
         self.local_base_url = local_base_url
         self.cloud_base_url = cloud_base_url
         self.cloud_api_key = cloud_api_key
-        self.num_runs = max(1, min(3, num_runs))
-        self.bench_prompts_active = _BENCH_PROMPTS[: self.num_runs]
+        if prompts is not None:
+            self.bench_prompts_active = prompts
+            self.num_runs = len(prompts)
+        else:
+            self.num_runs = max(1, min(3, num_runs))
+            self.bench_prompts_active = _BENCH_PROMPTS[: self.num_runs]
         self.num_parallel = max(1, min(10, num_parallel))
 
     @classmethod
-    def from_env(cls, runs: int | None = None, parallel: int | None = None) -> Config:
+    def from_env(
+        cls,
+        runs: int | None = None,
+        parallel: int | None = None,
+        prompts: list[str] | None = None,
+    ) -> Config:
         _load_env()
         local_base_url = os.getenv("OLLAMA_LOCAL_BASE_URL", "http://localhost:11434")
         cloud_base_url = os.getenv("OLLAMA_CLOUD_BASE_URL", "https://ollama.com")
@@ -57,11 +67,16 @@ class Config:
         except ValueError:
             num_parallel = 1
 
-        if runs is not None:
+        if runs is not None and prompts is None:
             num_runs = runs
         if parallel is not None:
             num_parallel = parallel
 
         return cls(
-            local_base_url, cloud_base_url, cloud_api_key, num_runs, num_parallel
+            local_base_url,
+            cloud_base_url,
+            cloud_api_key,
+            num_runs,
+            num_parallel,
+            prompts,
         )

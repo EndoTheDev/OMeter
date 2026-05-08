@@ -124,6 +124,27 @@ class TestConfigInit:
         cfg = Config("a", "b", "", 1, 1)
         assert len(cfg.bench_prompts_active) == 1
 
+    def test_custom_prompts_override_defaults(self):
+        custom = [
+            "custom prompt 1",
+            "custom prompt 2",
+            "custom prompt 3",
+            "custom prompt 4",
+        ]
+        cfg = Config("a", "b", "", 2, 1, prompts=custom)
+        assert cfg.bench_prompts_active == custom
+        assert cfg.num_runs == 4
+
+    def test_custom_prompts_ignore_num_runs(self):
+        cfg = Config("a", "b", "", 1, 1, prompts=["hello", "world"])
+        assert cfg.bench_prompts_active == ["hello", "world"]
+        assert cfg.num_runs == 2
+
+    def test_custom_prompts_single_prompt_syncs_num_runs(self):
+        cfg = Config("a", "b", "", 3, 1, prompts=["only one"])
+        assert cfg.num_runs == 1
+        assert cfg.bench_prompts_active == ["only one"]
+
 
 class TestConfigFromEnv:
     _ENV_KEYS = (
@@ -178,3 +199,11 @@ class TestConfigFromEnv:
         cfg = Config.from_env(runs=1, parallel=4)
         assert cfg.num_runs == 1
         assert cfg.num_parallel == 4
+
+    def test_from_env_with_custom_prompts(self, clean_env):
+        cfg = Config.from_env(prompts=["hello", "world"])
+        assert cfg.bench_prompts_active == ["hello", "world"]
+
+    def test_from_env_custom_prompts_ignores_runs_param(self, clean_env):
+        cfg = Config.from_env(runs=1, prompts=["a", "b", "c"])
+        assert cfg.bench_prompts_active == ["a", "b", "c"]

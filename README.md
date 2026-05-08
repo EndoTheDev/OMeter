@@ -15,7 +15,7 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 - ⏱️ **Benchmark** time-to-first-token (TTFT) and tokens-per-second (TPS)
 - 🔍 **Model filtering** by exact name or family match (e.g. `llama3` matches `llama3:latest`)
 - 📤 **Export results** to JSON or CSV (stdout or file)
-- 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats
+- 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats (or use `--prompts` for custom prompts)
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
 - 🎨 **Beautiful CLI** powered by `rich` + `InquirerPy`
 
@@ -135,6 +135,15 @@ ometer --cloud --ttft --tps --verbose --runs 1
 ometer --cloud --ttft --tps --verbose --runs 2
 ```
 
+Use **custom benchmark prompts** instead of the built-in defaults (overrides `--runs`):
+
+```bash
+ometer --local --ttft --tps --prompts "why is the ocean salty?"
+ometer --local --ttft --tps --prompts prompts.txt
+```
+
+Pass a filename to read one prompt per line (skips blank lines, strips whitespace).
+
 Filter to **specific models** (exact name or family match, accepts multiple names):
 
 ```bash
@@ -207,7 +216,7 @@ OLLAMA_CLOUD_BASE_URL=https://ollama.com
 OLLAMA_CLOUD_API_KEY=your_api_key_here
 OLLAMA_LOCAL_BASE_URL=http://localhost:11434
 
-# Number of benchmark prompts per model (1–3, default 3)
+# Number of benchmark prompts per model (1–3, default 3). Ignored when --prompts is used.
 OMETER_RUNS=3
 
 # Number of models benchmarked in parallel (default 1, max 10)
