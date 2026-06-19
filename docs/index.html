@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMeter — Ollama Cloud Benchmarks</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;padding:24px;max-width:1200px;margin:0 auto}
+h1{color:#58a6ff;font-size:1.6rem;margin-bottom:4px}
+h2{color:#8b949e;font-size:1rem;margin-bottom:24px;font-weight:400}
+.chart-wrap{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:20px}
+.chart-wrap h3{color:#c9d1d9;font-size:1rem;margin-bottom:12px}
+canvas{max-height:400px}
+table{width:100%;border-collapse:collapse;font-size:0.85rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #21262d}
+th{color:#8b949e;font-weight:600;position:sticky;top:0;background:#161b22}
+td{color:#c9d1d9}
+tr:hover td{background:#1c2128}
+.label{color:#8b949e;font-size:0.75rem;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<h1>OMeter</h1>
+<h2>Ollama Cloud Model Benchmarks — TPS &amp; TTFT over Time</h2>
+<div class="chart-wrap"><h3>Tokens per Second (TPS) — higher is better</h3><canvas id="tpsChart"></canvas></div>
+<div class="chart-wrap"><h3>Time to First Token (TTFT) — lower is better</h3><canvas id="ttftChart"></canvas></div>
+<div class="chart-wrap"><h3>Latest Benchmark Snapshot</h3><div style="overflow-x:auto"><table><thead><tr><th>Model</th><th>Size</th><th>TTFT (s)</th><th>TPS</th><th>Error</th></tr></thead><tbody id="latestTable"></tbody></table></div></div>
+<div class="label">Updated daily at 06:00 UTC via GitHub Actions</div>
+<script>
+const COLORS = [
+  '#58a6ff','#3fb950','#d2a8ff','#f0883e','#ff7b72',
+  '#a5d6ff','#7ee787','#ffa657','#ffc145','#c9d1d9'
+];
+
+(async () => {
+  const resp = await fetch('benchmark-history.json');
+  const data = await resp.json();
+  const runs = data.runs;
+
+  // Collect all timestamps and model names
+  const timestamps = runs.map(r => r.timestamp.slice(0, 10)); // date only
+  const models = [...new Set(runs.flatMap(r => r.models.map(m => m.model)))].sort();
+
+  function buildDatasets(field) {
+    return models.map((name, i) => ({
+      label: name,
+      data: runs.map(r => {
+        const m = r.models.find(mm => mm.model === name);
+        return m ? m[field] : null;
+      }),
+      borderColor: COLORS[i % COLORS.length],
+      backgroundColor: COLORS[i % COLORS.length] + '33',
+      tension: 0.2,
+      spanGaps: false,
+      pointRadius: 3,
+    }));
+  }
+
+  new Chart(document.getElementById('tpsChart'), {
+    type: 'line',
+    data: { labels: timestamps, datasets: buildDatasets('tps') },
+    options: {
+      responsive: true,
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e' } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', maxTicksLimit: 15 }, grid: { color: '#21262d' } },
+        y: { beginAtZero: true, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
+      },
+    },
+  });
+
+  new Chart(document.getElementById('ttftChart'), {
+    type: 'line',
+    data: { labels: timestamps, datasets: buildDatasets('ttft') },
+    options: {
+      responsive: true,
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e' } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', maxTicksLimit: 15 }, grid: { color: '#21262d' } },
+        y: { beginAtZero: true, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
+      },
+    },
+  });
+
+  // Latest snapshot table
+  const latest = runs[runs.length - 1].models;
+  const tbody = document.getElementById('latestTable');
+  for (const m of latest) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:#58a6ff">${m.model}</td>
+      <td>${m.size || '—'}</td>
+      <td>${m.ttft != null ? m.ttft.toFixed(3) : '—'}</td>
+      <td>${m.tps != null ? m.tps.toFixed(1) : '—'}</td>
+      <td style="color:#ff7b72">${m.error || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+})();
+</script>
+</body>
+</html>
