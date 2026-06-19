@@ -14,7 +14,10 @@ with open(latest_path) as f:
     content = f.read().strip()
     if not content:
         sys.exit(0)
-    latest_results = json.loads(content)
+    try:
+        latest_results = json.loads(content)
+    except json.JSONDecodeError:
+        sys.exit(0)
 
 try:
     with open(history_path) as f:
