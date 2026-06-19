@@ -20,7 +20,7 @@ jobs:
         run: uv run ometer --cloud --ttft --tps --runs 3 --parallel 3 --num_predict 2000 --json > benchmark-latest.json
 
       - name: Merge into time-series history
-        run: python3 .github/merge_benchmark.py benchmark-latest.json docs/benchmark-history.json
+        run: uv run python .github/merge_benchmark.py benchmark-latest.json docs/benchmark-history.json
 
       - name: Commit and push data
         run: |
