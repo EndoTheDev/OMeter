@@ -212,6 +212,7 @@
       .model-checkbox {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 6px;
         font-size: 14px;
         cursor: pointer;
@@ -223,6 +224,19 @@
       }
       .model-checkbox input {
         cursor: pointer;
+        order: 2;
+      }
+      .model-name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        order: 1;
+        min-width: 0;
+      }
+      .model-name span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .model-badge {
         display: inline-block;
@@ -430,15 +444,18 @@
             <label
               v-for="m in filteredModelNames"
               :key="m"
-              class="model-checkbox">
+              class="model-checkbox"
+              :title="m">
+              <span class="model-name">
+                <span
+                  class="model-badge"
+                  :style="{background: colorFor(m)}"></span>
+                <span :style="{color: colorFor(m)}">{{ m }}</span>
+              </span>
               <input
                 type="checkbox"
                 :value="m"
                 v-model="selectedModels" />
-              <span
-                class="model-badge"
-                :style="{background: colorFor(m)}"></span>
-              <span :style="{color: colorFor(m)}">{{ m }}</span>
             </label>
           </div>
         </div>
