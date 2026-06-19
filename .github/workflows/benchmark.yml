@@ -22,13 +22,13 @@ jobs:
         run: uv run ometer --cloud --ttft --tps --runs 3 --parallel 3 --num_predict 2000 --json > benchmark-latest.json
 
       - name: Merge into time-series history
-        run: uv run python .github/merge_benchmark.py benchmark-latest.json docs/benchmark-history.json
+        run: uv run python .github/merge_benchmark.py benchmark-latest.json docs/data/benchmark-history.json
 
       - name: Commit and push data
         run: |
           git config user.name "OMeter Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/benchmark-history.json
+          git add docs/data/benchmark-history.json
           git diff --staged --quiet || (
             git commit -m "chore: auto-benchmark [skip ci]" &&
             git push

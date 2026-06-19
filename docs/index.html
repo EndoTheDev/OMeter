@@ -1,106 +1,952 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OMeter — Ollama Cloud Benchmarks</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;padding:24px;max-width:1200px;margin:0 auto}
-h1{color:#58a6ff;font-size:1.6rem;margin-bottom:4px}
-h2{color:#8b949e;font-size:1rem;margin-bottom:24px;font-weight:400}
-.chart-wrap{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:20px}
-.chart-wrap h3{color:#c9d1d9;font-size:1rem;margin-bottom:12px}
-canvas{max-height:400px}
-table{width:100%;border-collapse:collapse;font-size:0.85rem}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #21262d}
-th{color:#8b949e;font-weight:600;position:sticky;top:0;background:#161b22}
-td{color:#c9d1d9}
-tr:hover td{background:#1c2128}
-.label{color:#8b949e;font-size:0.75rem;text-align:center;margin-top:24px}
-</style>
-</head>
-<body>
-<h1>OMeter</h1>
-<h2>Ollama Cloud Model Benchmarks — TPS &amp; TTFT over Time</h2>
-<div class="chart-wrap"><h3>Tokens per Second (TPS) — higher is better</h3><canvas id="tpsChart"></canvas></div>
-<div class="chart-wrap"><h3>Time to First Token (TTFT) — lower is better</h3><canvas id="ttftChart"></canvas></div>
-<div class="chart-wrap"><h3>Latest Benchmark Snapshot</h3><div style="overflow-x:auto"><table><thead><tr><th>Model</th><th>Size</th><th>TTFT (s)</th><th>TPS</th><th>Error</th></tr></thead><tbody id="latestTable"></tbody></table></div></div>
-<div class="label">Updated daily at 06:00 UTC via GitHub Actions</div>
-<script>
-const COLORS = [
-  '#58a6ff','#3fb950','#d2a8ff','#f0883e','#ff7b72',
-  '#a5d6ff','#7ee787','#ffa657','#ffc145','#c9d1d9'
-];
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0" />
+    <title>OMeter — Ollama Cloud Benchmarks</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+    <style>
+      :root {
+        --bg: #11111b;
+        --panel: #1e1e2e;
+        --border: #45475a;
+        --text: #cdd6f4;
+        --muted: #a6adc8;
+        --heading: #cdd6f4;
+        --hover: #313244;
+        --accent: #89b4fa;
+        --input-bg: #181825;
+        --chip-active-bg: #89b4fa;
+        --chip-active-border: #89b4fa;
+        --chip-active-text: #1e1e2e;
+        --cap-tag-bg: #45475a;
+        --cap-tag-text: #cdd6f4;
+        --note-text: #a6adc8;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #dce0e8;
+          --panel: #eff1f5;
+          --border: #bcc0cc;
+          --text: #4c4f69;
+          --muted: #6c6f85;
+          --heading: #4c4f69;
+          --hover: #ccd0da;
+          --accent: #1e66f5;
+          --input-bg: #e6e9ef;
+          --chip-active-bg: #1e66f5;
+          --chip-active-border: #1e66f5;
+          --chip-active-text: #eff1f5;
+          --cap-tag-bg: #bcc0cc;
+          --cap-tag-text: #4c4f69;
+          --note-text: #6c6f85;
+        }
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted);
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 4px;
+        color: var(--heading);
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+      .vibes {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 24px;
+        font-style: italic;
+      }
+      #app {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 288px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        padding: 20px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      .sidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .sidebar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sidebar::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+      }
+      .sidebar::-webkit-scrollbar-thumb:hover {
+        background: var(--muted);
+      }
+      .sidebar h2 {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .date-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .date-row label {
+        font-size: 13px;
+        color: var(--muted);
+        width: 40px;
+      }
+      input[type="date"],
+      input[type="number"],
+      input[type="text"] {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        flex: 1;
+      }
+      .filter-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        padding: 0;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .filter-toggle:hover {
+        color: var(--text);
+      }
+      .toggle-arrow {
+        transition: transform 0.2s;
+        font-size: 12px;
+      }
+      .toggle-arrow.open {
+        transform: rotate(90deg);
+      }
+      .filter-section {
+        margin-bottom: 16px;
+      }
+      .search-section {
+        margin-bottom: 12px;
+      }
+      .models-section {
+        margin-top: 16px;
+      }
+      .capability-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .capability-chip {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 4px 5px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+      }
+      .capability-chip.active {
+        background: var(--chip-active-bg);
+        border-color: var(--chip-active-border);
+        color: var(--chip-active-text);
+      }
+      .capability-chip input {
+        display: none;
+      }
+      .model-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .model-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+      }
+      .model-checkbox:hover {
+        background: var(--hover);
+      }
+      .model-checkbox input {
+        cursor: pointer;
+      }
+      .model-badge {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-right: 8px;
+      }
+      .main-content {
+        flex: 1;
+        padding: 24px;
+        min-width: 0;
+      }
+      .chart-container {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .chart-container h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+        color: var(--heading);
+      }
+      .chart-container canvas {
+        max-height: 400px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      th {
+        background: var(--hover);
+        color: var(--muted);
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+      }
+      th:hover {
+        color: var(--heading);
+      }
+      th .sort-arrow {
+        color: var(--accent);
+        margin-left: 4px;
+      }
+      tr:hover td {
+        background: var(--hover);
+      }
+      .capability-tag {
+        display: inline-block;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--cap-tag-bg);
+        color: var(--cap-tag-text);
+        margin-right: 4px;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 48px;
+        color: var(--muted);
+      }
+      .empty-state p {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      .note {
+        color: var(--note-text);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar">
+        <h1>OMeter</h1>
+        <p class="subtitle">Ollama Cloud benchmarks</p>
+        <p class="vibes">
+          made with vibes by
+          <a
+            href="https://github.com/EndoTheDev"
+            target="_blank"
+            rel="noopener"
+            style="color: var(--accent); text-decoration: none"
+            >EndoTheDev</a
+          >🎵
+        </p>
 
-(async () => {
-  const resp = await fetch('benchmark-history.json');
-  const data = await resp.json();
-  const runs = data.runs;
+        <div class="filter-section">
+          <button
+            class="filter-toggle"
+            @click="advancedOpen = !advancedOpen">
+            Advanced filters
+            <span
+              class="toggle-arrow"
+              :class="{open: advancedOpen}"
+              >▶</span
+            >
+          </button>
+          <div
+            v-show="advancedOpen"
+            class="advanced-filters">
+            <div class="filter-section">
+              <h2>Date range</h2>
+              <div class="date-row">
+                <label>From</label
+                ><input
+                  type="date"
+                  v-model="dateFrom" />
+              </div>
+              <div class="date-row">
+                <label>To</label
+                ><input
+                  type="date"
+                  v-model="dateTo" />
+              </div>
+            </div>
 
-  // Collect all timestamps and model names
-  const timestamps = runs.map(r => r.timestamp.slice(0, 10)); // date only
-  const models = [...new Set(runs.flatMap(r => r.models.map(m => m.model)))].sort();
+            <div class="filter-section">
+              <h2>Capabilities</h2>
+              <div class="capability-list">
+                <label
+                  v-for="c in capabilities"
+                  :key="c"
+                  class="capability-chip"
+                  :class="{active: selectedCapabilities.includes(c)}">
+                  <input
+                    type="checkbox"
+                    :value="c"
+                    v-model="selectedCapabilities" />{{ c }}
+                </label>
+              </div>
+            </div>
 
-  function buildDatasets(field) {
-    return models.map((name, i) => ({
-      label: name,
-      data: runs.map(r => {
-        const m = r.models.find(mm => mm.model === name);
-        return m ? m[field] : null;
-      }),
-      borderColor: COLORS[i % COLORS.length],
-      backgroundColor: COLORS[i % COLORS.length] + '33',
-      tension: 0.2,
-      spanGaps: false,
-      pointRadius: 3,
-    }));
-  }
+            <div class="filter-section">
+              <h2>Context window</h2>
+              <div class="date-row">
+                <label>Min</label
+                ><input
+                  type="number"
+                  v-model.number="minContext"
+                  placeholder="0" />
+              </div>
+              <div class="date-row">
+                <label>Max</label
+                ><input
+                  type="number"
+                  v-model.number="maxContext"
+                  placeholder="∞" />
+              </div>
+            </div>
 
-  new Chart(document.getElementById('tpsChart'), {
-    type: 'line',
-    data: { labels: timestamps, datasets: buildDatasets('tps') },
-    options: {
-      responsive: true,
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e' } } },
-      scales: {
-        x: { ticks: { color: '#8b949e', maxTicksLimit: 15 }, grid: { color: '#21262d' } },
-        y: { beginAtZero: true, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
-      },
-    },
-  });
+            <div class="filter-section">
+              <h2>Parameters</h2>
+              <div class="date-row">
+                <label>Min</label
+                ><input
+                  type="number"
+                  v-model.number="minParams"
+                  placeholder="0" />
+              </div>
+              <div class="date-row">
+                <label>Max</label
+                ><input
+                  type="number"
+                  v-model.number="maxParams"
+                  placeholder="∞" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-  new Chart(document.getElementById('ttftChart'), {
-    type: 'line',
-    data: { labels: timestamps, datasets: buildDatasets('ttft') },
-    options: {
-      responsive: true,
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      plugins: { legend: { position: 'bottom', labels: { color: '#8b949e' } } },
-      scales: {
-        x: { ticks: { color: '#8b949e', maxTicksLimit: 15 }, grid: { color: '#21262d' } },
-        y: { beginAtZero: true, ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
-      },
-    },
-  });
+        <div class="filter-section search-section">
+          <h2>Search models</h2>
+          <input
+            type="text"
+            v-model="searchText"
+            placeholder="e.g. qwen"
+            style="
+              width: 100%;
+              padding: 6px 10px;
+              font-size: 13px;
+              border-radius: 6px;
+            " />
+        </div>
 
-  // Latest snapshot table
-  const latest = runs[runs.length - 1].models;
-  const tbody = document.getElementById('latestTable');
-  for (const m of latest) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="color:#58a6ff">${m.model}</td>
-      <td>${m.size || '—'}</td>
-      <td>${m.ttft != null ? m.ttft.toFixed(3) : '—'}</td>
-      <td>${m.tps != null ? m.tps.toFixed(1) : '—'}</td>
-      <td style="color:#ff7b72">${m.error || ''}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-})();
-</script>
-</body>
+        <div class="filter-section models-section">
+          <h2>Models</h2>
+          <div class="model-list">
+            <label
+              v-for="m in filteredModelNames"
+              :key="m"
+              class="model-checkbox">
+              <input
+                type="checkbox"
+                :value="m"
+                v-model="selectedModels" />
+              <span
+                class="model-badge"
+                :style="{background: colorFor(m)}"></span>
+              <span :style="{color: colorFor(m)}">{{ m }}</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div
+          v-if="filteredSnapshots.length === 0"
+          class="empty-state">
+          <p>No benchmark data yet</p>
+          <p>Waiting for the first scheduled run...</p>
+        </div>
+
+        <div
+          v-else-if="filteredSnapshots.length === 1"
+          class="chart-container">
+          <p style="text-align: center; color: var(--muted); padding: 32px">
+            Time-series charts will appear once more than one benchmark run is
+            collected.
+          </p>
+        </div>
+
+        <div
+          class="chart-container"
+          v-if="filteredSnapshots.length >= 2">
+          <h2>Tokens per Second (higher is better)</h2>
+          <canvas ref="tpsChart"></canvas>
+        </div>
+
+        <div
+          class="chart-container"
+          v-if="filteredSnapshots.length >= 2">
+          <h2>Time to First Token (lower is better)</h2>
+          <canvas ref="ttftChart"></canvas>
+        </div>
+
+        <div v-if="filteredSnapshots.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th @click="sortBy='model';sortDir*=-1">
+                  Model<span
+                    class="sort-arrow"
+                    v-if="sortBy==='model'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='size';sortDir*=-1">
+                  Params<span
+                    class="sort-arrow"
+                    v-if="sortBy==='size'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='context';sortDir*=-1">
+                  Context<span
+                    class="sort-arrow"
+                    v-if="sortBy==='context'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='quant';sortDir*=-1">
+                  Quant<span
+                    class="sort-arrow"
+                    v-if="sortBy==='quant'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='tps';sortDir*=-1">
+                  TPS<span
+                    class="sort-arrow"
+                    v-if="sortBy==='tps'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='ttft';sortDir*=-1">
+                  TTFT (ms)<span
+                    class="sort-arrow"
+                    v-if="sortBy==='ttft'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+                <th @click="sortBy='capabilities';sortDir*=-1">
+                  Capabilities<span
+                    class="sort-arrow"
+                    v-if="sortBy==='capabilities'"
+                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                  >
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="r in sortedLatest"
+                :key="r.model">
+                <td>
+                  <span
+                    class="model-badge"
+                    :style="{background: colorFor(r.model)}"></span
+                  >{{ r.model }}
+                </td>
+                <td>{{ r.size || '—' }}</td>
+                <td>{{ formatContext(r.context) }}</td>
+                <td>{{ r.quant || '—' }}</td>
+                <td>{{ r.tps.toFixed(1) }}</td>
+                <td>{{ (r.ttft * 1000).toFixed(0) }}</td>
+                <td>
+                  <span
+                    v-for="cap in r.capabilities.split(', ').filter(Boolean)"
+                    :key="cap"
+                    class="capability-tag"
+                    >{{ cap }}</span
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="note">
+            Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const COLORS = [
+        "#58a6ff",
+        "#3fb950",
+        "#d29922",
+        "#f85149",
+        "#bc8cff",
+        "#79c0ff",
+        "#56d364",
+        "#e3b341",
+        "#ff7b72",
+        "#d2a8ff",
+        "#7ee787",
+        "#a5d6ff",
+        "#ffa657",
+        "#ffc107",
+        "#b392f0",
+      ];
+
+      const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+      createApp({
+        setup() {
+          const rawData = ref([]);
+          const selectedModels = ref([]);
+          const selectedCapabilities = ref([]);
+          const minContext = ref(null);
+          const maxContext = ref(null);
+          const minParams = ref(null);
+          const maxParams = ref(null);
+          const searchText = ref("");
+          const dateFrom = ref("");
+          const dateTo = ref("");
+          const sortBy = ref("tps");
+          const sortDir = ref(-1);
+          const tpsChart = ref(null);
+          const ttftChart = ref(null);
+          const advancedOpen = ref(false);
+          let tpsChartInstance = null;
+          let ttftChartInstance = null;
+
+          const models = computed(() => {
+            const last = rawData.value[rawData.value.length - 1];
+            if (!last) return [];
+            let items = (last.models || []).map((r) => r.model);
+            if (searchText.value.trim()) {
+              const q = searchText.value.trim().toLowerCase();
+              items = items.filter((m) => m.toLowerCase().includes(q));
+            }
+            if (selectedCapabilities.value.length > 0) {
+              const capSet = selectedCapabilities.value;
+              items = items.filter((m) => {
+                const r = (last.models || []).find((x) => x.model === m);
+                return (
+                  r && capSet.every((c) => (r.capabilities || "").includes(c))
+                );
+              });
+            }
+            if (minContext.value || maxContext.value) {
+              items = items.filter((m) => {
+                const r = (last.models || []).find((x) => x.model === m);
+                const ctx = parseInt(r?.context || "0", 10);
+                if (minContext.value && ctx < minContext.value) return false;
+                if (maxContext.value && ctx > maxContext.value) return false;
+                return true;
+              });
+            }
+            if (minParams.value || maxParams.value) {
+              items = items.filter((m) => {
+                const r = (last.models || []).find((x) => x.model === m);
+                const params = normalizeSize(r?.size);
+                if (minParams.value && params < minParams.value) return false;
+                if (maxParams.value && params > maxParams.value) return false;
+                return true;
+              });
+            }
+            return items;
+          });
+
+          const capabilities = computed(() => {
+            const s = new Set();
+            for (const snap of rawData.value) {
+              for (const r of snap.models || []) {
+                for (const c of (r.capabilities || "")
+                  .split(", ")
+                  .filter(Boolean))
+                  s.add(c);
+              }
+            }
+            return [...s].sort();
+          });
+
+          const filteredModelNames = computed(() => {
+            const q = searchText.value.trim().toLowerCase();
+            return q ?
+                models.value.filter((m) => m.toLowerCase().includes(q))
+              : models.value;
+          });
+
+          const colorFor = (model) => {
+            const i = models.value.indexOf(model);
+            return COLORS[i % COLORS.length];
+          };
+
+          const filteredSnapshots = computed(() => {
+            let snaps = rawData.value;
+            if (dateFrom.value) {
+              const f = new Date(dateFrom.value);
+              snaps = snaps.filter((s) => new Date(s.timestamp) >= f);
+            }
+            if (dateTo.value) {
+              const t = new Date(dateTo.value + "T23:59:59");
+              snaps = snaps.filter((s) => new Date(s.timestamp) <= t);
+            }
+            return snaps;
+          });
+
+          const latestResults = computed(() => {
+            const last =
+              filteredSnapshots.value[filteredSnapshots.value.length - 1];
+            if (!last) return [];
+            let items = last.models || [];
+            if (searchText.value.trim()) {
+              const q = searchText.value.trim().toLowerCase();
+              items = items.filter((r) => r.model.toLowerCase().includes(q));
+            }
+            if (selectedModels.value.length > 0) {
+              items = items.filter((r) =>
+                selectedModels.value.includes(r.model),
+              );
+            }
+            if (selectedCapabilities.value.length > 0) {
+              items = items.filter((r) =>
+                selectedCapabilities.value.every((c) =>
+                  (r.capabilities || "").includes(c),
+                ),
+              );
+            }
+            if (minContext.value) {
+              const ctx = parseInt(minContext.value, 10);
+              items = items.filter(
+                (r) => parseInt(r.context || "0", 10) >= ctx,
+              );
+            }
+            if (maxContext.value) {
+              const ctx = parseInt(maxContext.value, 10);
+              items = items.filter(
+                (r) => parseInt(r.context || "0", 10) <= ctx,
+              );
+            }
+            if (minParams.value) {
+              items = items.filter(
+                (r) => normalizeSize(r.size) >= minParams.value,
+              );
+            }
+            if (maxParams.value) {
+              items = items.filter(
+                (r) => normalizeSize(r.size) <= maxParams.value,
+              );
+            }
+            return items;
+          });
+
+          const totalLatestModels = computed(() => {
+            const last =
+              filteredSnapshots.value[filteredSnapshots.value.length - 1];
+            return last ? (last.models || []).length : 0;
+          });
+
+          const sortedLatest = computed(() => {
+            const items = [...latestResults.value];
+            items.sort((a, b) => {
+              const va = sortValue(a, sortBy.value);
+              const vb = sortValue(b, sortBy.value);
+              if (va < vb) return -sortDir.value;
+              if (va > vb) return sortDir.value;
+              return 0;
+            });
+            return items;
+          });
+
+          function sortValue(item, field) {
+            if (field === "size") return normalizeSize(item.size);
+            if (field === "context") return parseInt(item.context || "0", 10);
+            if (field === "capabilities")
+              return (item.capabilities || "").split(", ").filter(Boolean)
+                .length;
+            let v = item[field];
+            if (typeof v === "string") v = v.toLowerCase();
+            return v;
+          }
+
+          function normalizeSize(value) {
+            if (!value) return 0;
+            value = value.trim().toUpperCase();
+            if (value === "0") return 0;
+            const n = parseFloat(value);
+            if (isNaN(n)) return 0;
+            if (value.endsWith("T")) return n * 1000;
+            if (value.endsWith("B")) return n;
+            return n;
+          }
+
+          function formatContext(value) {
+            const n = parseInt(value || "0", 10);
+            if (!n) return "—";
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+            if (n >= 1000) return (n / 1000).toFixed(0) + "k";
+            return String(n);
+          }
+
+          function buildChartData(snaps, field) {
+            let activeModels =
+              selectedModels.value.length > 0 ?
+                selectedModels.value
+              : models.value;
+            if (selectedCapabilities.value.length > 0) {
+              activeModels = activeModels.filter((model) => {
+                const last = snaps[snaps.length - 1];
+                const r = (last?.models || []).find((x) => x.model === model);
+                return (
+                  r &&
+                  selectedCapabilities.value.every((c) =>
+                    (r.capabilities || "").includes(c),
+                  )
+                );
+              });
+            }
+            const datasets = activeModels.map((model) => ({
+              label: model,
+              data: snaps.map((s) => {
+                const r = (s.models || []).find((x) => x.model === model);
+                return (
+                  r ?
+                    field === "ttft" ?
+                      r.ttft * 1000
+                    : r[field]
+                  : null
+                );
+              }),
+              borderColor: colorFor(model),
+              backgroundColor: colorFor(model) + "20",
+              borderWidth: 2,
+              pointRadius: 3,
+              tension: 0.1,
+              spanGaps: true,
+            }));
+            return {
+              labels: snaps.map((s) => {
+                const d = new Date(s.timestamp);
+                return (
+                  d.toLocaleDateString() +
+                  " " +
+                  d.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                );
+              }),
+              datasets,
+            };
+          }
+
+          function renderCharts() {
+            const snaps = filteredSnapshots.value;
+            if (snaps.length < 2) return;
+            if (!tpsChart.value || !ttftChart.value) return;
+
+            const commonOpts = {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "nearest", intersect: true },
+              plugins: {
+                tooltip: {
+                  backgroundColor: "var(--panel)",
+                  titleColor: "var(--heading)",
+                  bodyColor: "var(--text)",
+                  borderColor: "var(--border)",
+                  borderWidth: 1,
+                  padding: 8,
+                  displayColors: true,
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}`,
+                  },
+                },
+                legend: { display: false },
+                zoom: {
+                  pan: { enabled: true, mode: "x" },
+                  zoom: {
+                    wheel: { enabled: true },
+                    drag: {
+                      enabled: true,
+                      backgroundColor: "rgba(88,166,255,0.1)",
+                    },
+                    mode: "x",
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  ticks: { color: "var(--muted)", maxRotation: 45 },
+                  grid: { color: "var(--border)" },
+                },
+                y: {
+                  ticks: { color: "var(--muted)" },
+                  grid: { color: "var(--border)" },
+                },
+              },
+            };
+
+            if (tpsChartInstance) tpsChartInstance.destroy();
+            if (ttftChartInstance) ttftChartInstance.destroy();
+
+            tpsChartInstance = new Chart(tpsChart.value, {
+              type: "line",
+              data: buildChartData(snaps, "tps"),
+              options: commonOpts,
+            });
+            ttftChartInstance = new Chart(ttftChart.value, {
+              type: "line",
+              data: buildChartData(snaps, "ttft"),
+              options: commonOpts,
+            });
+          }
+
+          watch(
+            [
+              filteredSnapshots,
+              selectedModels,
+              selectedCapabilities,
+              minContext,
+              maxContext,
+              minParams,
+              maxParams,
+              searchText,
+            ],
+            () => nextTick(renderCharts),
+            { deep: true },
+          );
+
+          onMounted(async () => {
+            try {
+              const resp = await fetch("data/benchmark-history.json");
+              const data = await resp.json();
+              rawData.value = data.runs || [];
+              if (rawData.value.length > 0) {
+                const dates = rawData.value.map((s) => new Date(s.timestamp));
+                const min = new Date(Math.min(...dates));
+                const max = new Date(Math.max(...dates));
+                dateFrom.value = min.toISOString().slice(0, 10);
+                dateTo.value = max.toISOString().slice(0, 10);
+              }
+            } catch (e) {
+              console.log("No benchmark data yet");
+            }
+          });
+
+          return {
+            models,
+            filteredModelNames,
+            capabilities,
+            selectedModels,
+            selectedCapabilities,
+            minContext,
+            maxContext,
+            minParams,
+            maxParams,
+            searchText,
+            dateFrom,
+            dateTo,
+            sortBy,
+            sortDir,
+            advancedOpen,
+            filteredSnapshots,
+            sortedLatest,
+            totalLatestModels,
+            colorFor,
+            formatContext,
+            tpsChart,
+            ttftChart,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
 </html>
