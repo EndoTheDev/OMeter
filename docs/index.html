@@ -344,14 +344,16 @@
             rel="noopener"
             style="color: var(--accent); text-decoration: none"
             >Kimi</a
-          > &amp;
+          >
+          &amp;
           <a
             href="https://github.com/nousresearch/hermes-agent"
             target="_blank"
             rel="noopener"
             style="color: var(--accent); text-decoration: none"
             >Hermes</a
-          > &amp;
+          >
+          &amp;
           <a
             href="https://github.com/ollama/ollama"
             target="_blank"
@@ -947,13 +949,6 @@
               const resp = await fetch("data/benchmark-history.json");
               const data = await resp.json();
               rawData.value = data.runs || [];
-              if (rawData.value.length > 0) {
-                const dates = rawData.value.map((s) => new Date(s.timestamp));
-                const min = new Date(Math.min(...dates));
-                const max = new Date(Math.max(...dates));
-                dateFrom.value = min.toISOString().slice(0, 10);
-                dateTo.value = max.toISOString().slice(0, 10);
-              }
             } catch (e) {
               console.log("No benchmark data yet");
             }
