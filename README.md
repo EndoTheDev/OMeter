@@ -9,6 +9,7 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 
 ## Features
 
+- 🌐 **Live dashboard** — auto-published benchmark trends at [EndoTheDev.github.io/OMeter](https://EndoTheDev.github.io/OMeter/) with filtering, sorting, and charts
 - 📋 **List models** from local and cloud Ollama endpoints
 - 📊 **Rich tables** with sorting by name, size, context length, modification date, TTFT, or TPS
 - 🔃 **Reverse sort** with `--reverse`
@@ -18,7 +19,7 @@ Benchmark and compare Ollama models across local and cloud endpoints with rich, 
 - 🧪 **Multi-prompt averaging** — 3 prompts per model for robust stats (or use `--prompts` for custom prompts)
 - 🧬 **Embedding model support** — automatically uses `/api/embed` for local embedding models
 - 🎨 **Beautiful CLI** powered by `rich` + `InquirerPy`
-- 📜 **Benchmark history** — every run is auto-saved to a local SQLite database; view past results with `--history`
+- 📜 **Benchmark history** — runs are auto-saved to a local SQLite database and merged into the public dashboard history; view past results with `--history`
 - 📈 **Performance trends** — arrows (↑↓→) automatically appear inline next to TTFT/TPS values when historical data is available
 
 ## Preview
@@ -228,6 +229,17 @@ See all options:
 ometer --help
 ```
 
+## Web Dashboard
+
+Benchmark data is automatically merged into the live dashboard after each
+scheduled GitHub Actions run:
+
+**[EndoTheDev.github.io/OMeter](https://EndoTheDev.github.io/OMeter/)**
+
+The dashboard supports filtering by capability, context window, parameter
+size, and model name, plus sorting and time-series charts once multiple runs
+have been collected.
+
 ## Environment Variables
 
 OMeter looks for a `.env` file in this order, using the **first one found**:
@@ -300,4 +312,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-Made by [EndoTheDev](https://github.com/EndoTheDev)
+Made for you with vibes by [Endo](https://github.com/EndoTheDev)🎵 & [Kimi](https://ollama.com/library/kimi-k2.7-code) & [Hermes](https://github.com/nousresearch/hermes-agent) & [Ollama](https://github.com/ollama/ollama)
