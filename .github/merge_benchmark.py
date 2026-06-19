@@ -11,7 +11,10 @@ from datetime import datetime, timezone
 latest_path, history_path = sys.argv[1], sys.argv[2]
 
 with open(latest_path) as f:
-    latest_results = json.load(f)
+    content = f.read().strip()
+    if not content:
+        sys.exit(0)
+    latest_results = json.loads(content)
 
 try:
     with open(history_path) as f:
