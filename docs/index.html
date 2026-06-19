@@ -85,24 +85,58 @@
       .vibes {
         color: var(--muted);
         font-size: 12px;
-        margin-bottom: 24px;
+        margin-bottom: 16px;
         font-style: italic;
       }
       #app {
         display: flex;
+        flex-direction: column;
         min-height: 100vh;
       }
       .sidebar {
-        width: 288px;
         background: var(--panel);
-        border-right: 1px solid var(--border);
-        padding: 20px;
-        flex-shrink: 0;
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        overflow-y: auto;
-        overscroll-behavior: contain;
+        border-bottom: 1px solid var(--border);
+        padding: 16px;
+      }
+      .main-content {
+        flex: 1;
+        padding: 16px;
+        min-width: 0;
+      }
+      .charts-row {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 768px) {
+        #app {
+          flex-direction: row;
+        }
+        .sidebar {
+          width: 288px;
+          flex-shrink: 0;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          border-right: 1px solid var(--border);
+          border-bottom: none;
+          padding: 20px;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        .main-content {
+          padding: 24px;
+        }
+        .charts-row {
+          flex-direction: row;
+        }
+        .charts-row > .chart-container {
+          flex: 1;
+          min-width: 0;
+          height: 420px;
+          padding: 16px;
+        }
       }
       .sidebar::-webkit-scrollbar {
         width: 6px;
@@ -246,25 +280,46 @@
         flex-shrink: 0;
         margin-right: 8px;
       }
-      .main-content {
-        flex: 1;
-        padding: 24px;
-        min-width: 0;
-      }
       .chart-container {
         background: var(--panel);
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 16px;
+        padding: 12px;
         margin-bottom: 16px;
+        height: 260px;
+        display: flex;
+        flex-direction: column;
       }
-      .chart-container h2 {
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .chart-header h2 {
         font-size: 16px;
-        margin-bottom: 12px;
+        margin: 0;
         color: var(--heading);
       }
+      .chart-zoom {
+        display: flex;
+        gap: 6px;
+      }
+      .chart-zoom button {
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .chart-zoom button:hover {
+        background: var(--hover);
+      }
       .chart-container canvas {
-        max-height: 400px;
+        flex: 1;
+        min-height: 0;
       }
       table {
         width: 100%;
@@ -330,7 +385,7 @@
         <h1>OMeter</h1>
         <p class="subtitle">Ollama Cloud benchmarks</p>
         <p class="vibes">
-          made for you with vibes by
+          made for you with vibes by:<br>
           <a
             href="https://github.com/EndoTheDev"
             target="_blank"
@@ -502,20 +557,41 @@
         </div>
 
         <div
-          class="chart-container"
+          class="charts-row"
           v-if="filteredSnapshots.length >= 2">
-          <h2>Tokens per Second (higher is better)</h2>
-          <canvas ref="tpsChart"></canvas>
-        </div>
+          <div
+            class="chart-container"
+            @mouseenter="activeChart = 'tps'"
+            @mouseleave="activeChart = null">
+            <div class="chart-header">
+              <h2>Tokens per Second (higher is better)</h2>
+              <div class="chart-zoom">
+                <button @click="zoomChart('tps', 1.2)">+</button>
+                <button @click="zoomChart('tps', 0.8)">−</button>
+                <button @click="resetZoom('tps')">Reset</button>
+              </div>
+            </div>
+            <canvas ref="tpsChart"></canvas>
+          </div>
 
-        <div
-          class="chart-container"
-          v-if="filteredSnapshots.length >= 2">
-          <h2>Time to First Token (lower is better)</h2>
-          <canvas ref="ttftChart"></canvas>
+          <div
+            class="chart-container"
+            @mouseenter="activeChart = 'ttft'"
+            @mouseleave="activeChart = null">
+            <div class="chart-header">
+              <h2>Time to First Token (lower is better)</h2>
+              <div class="chart-zoom">
+                <button @click="zoomChart('ttft', 1.2)">+</button>
+                <button @click="zoomChart('ttft', 0.8)">−</button>
+                <button @click="resetZoom('ttft')">Reset</button>
+              </div>
+            </div>
+            <canvas ref="ttftChart"></canvas>
+          </div>
         </div>
 
         <div v-if="filteredSnapshots.length > 0">
+          <div style="overflow-x: auto">
           <table>
             <thead>
               <tr>
@@ -596,6 +672,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
           <p class="note">
             Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
           </p>
@@ -641,6 +718,7 @@
           const tpsChart = ref(null);
           const ttftChart = ref(null);
           const advancedOpen = ref(false);
+          const activeChart = ref(null);
           let tpsChartInstance = null;
           let ttftChartInstance = null;
 
@@ -806,6 +884,20 @@
             return n;
           }
 
+          function zoomChart(chartName, factor) {
+            const chart =
+              chartName === "tps" ? tpsChartInstance : ttftChartInstance;
+            if (!chart) return;
+            chart.zoomScale("x", { o: 1 - factor, n: factor }, "default");
+          }
+
+          function resetZoom(chartName) {
+            const chart =
+              chartName === "tps" ? tpsChartInstance : ttftChartInstance;
+            if (!chart) return;
+            chart.resetZoom();
+          }
+
           function formatContext(value) {
             const n = parseInt(value || "0", 10);
             if (!n) return "—";
@@ -871,16 +963,19 @@
             if (snaps.length < 2) return;
             if (!tpsChart.value || !ttftChart.value) return;
 
+            const isMobile = window.innerWidth < 768;
+
             const commonOpts = {
               responsive: true,
               maintainAspectRatio: false,
+              layout: { padding: isMobile ? 4 : 8 },
               interaction: { mode: "nearest", intersect: true },
               plugins: {
                 tooltip: {
-                  backgroundColor: "var(--panel)",
-                  titleColor: "var(--heading)",
-                  bodyColor: "var(--text)",
-                  borderColor: "var(--border)",
+                  backgroundColor: "#0d1117",
+                  titleColor: "#f0f6fc",
+                  bodyColor: "#f0f6fc",
+                  borderColor: "#30363d",
                   borderWidth: 1,
                   padding: 8,
                   displayColors: true,
@@ -891,24 +986,27 @@
                 },
                 legend: { display: false },
                 zoom: {
-                  pan: { enabled: true, mode: "x" },
+                  pan: { enabled: false, mode: "x" },
                   zoom: {
-                    wheel: { enabled: true },
-                    drag: {
-                      enabled: true,
-                      backgroundColor: "rgba(88,166,255,0.1)",
-                    },
+                    wheel: { enabled: false },
+                    drag: { enabled: false },
                     mode: "x",
                   },
                 },
               },
               scales: {
                 x: {
-                  ticks: { color: "var(--muted)", maxRotation: 45 },
+                  ticks: {
+                    color: "var(--muted)",
+                    maxRotation: isMobile ? 90 : 45,
+                    autoSkip: true,
+                    maxTicksLimit: isMobile ? 4 : 8,
+                    font: { size: isMobile ? 9 : 12 },
+                  },
                   grid: { color: "var(--border)" },
                 },
                 y: {
-                  ticks: { color: "var(--muted)" },
+                  ticks: { color: "var(--muted)", font: { size: isMobile ? 9 : 12 } },
                   grid: { color: "var(--border)" },
                 },
               },
@@ -977,6 +1075,9 @@
             formatContext,
             tpsChart,
             ttftChart,
+            activeChart,
+            zoomChart,
+            resetZoom,
           };
         },
       }).mount("#app");
