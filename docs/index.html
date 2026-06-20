@@ -26,6 +26,9 @@
         --cap-tag-bg: #45475a;
         --cap-tag-text: #cdd6f4;
         --note-text: #a6adc8;
+        --chart-tooltip-bg: #1e1e2e;
+        --chart-tooltip-text: #cdd6f4;
+        --chart-tooltip-border: #45475a;
       }
       @media (prefers-color-scheme: light) {
         :root {
@@ -44,6 +47,9 @@
           --cap-tag-bg: #bcc0cc;
           --cap-tag-text: #4c4f69;
           --note-text: #6c6f85;
+          --chart-tooltip-bg: #eff1f5;
+          --chart-tooltip-text: #4c4f69;
+          --chart-tooltip-border: #bcc0cc;
         }
       }
       * {
@@ -660,25 +666,40 @@
     </div>
 
     <script>
-      const COLORS = [
-        "#58a6ff",
-        "#3fb950",
-        "#d29922",
-        "#f85149",
-        "#bc8cff",
-        "#79c0ff",
-        "#56d364",
-        "#e3b341",
-        "#ff7b72",
-        "#d2a8ff",
-        "#7ee787",
-        "#a5d6ff",
-        "#ffa657",
-        "#ffc107",
-        "#b392f0",
+      const MOCHA_COLORS = [
+        "#cba6f7",
+        "#f38ba8",
+        "#fab387",
+        "#f9e2af",
+        "#a6e3a1",
+        "#94e2d5",
+        "#89dceb",
+        "#74c7ec",
+        "#89b4fa",
+        "#b4befe",
+      ];
+      const LATTE_COLORS = [
+        "#8839ef",
+        "#e64553",
+        "#fe640b",
+        "#df8e1d",
+        "#40a02b",
+        "#179299",
+        "#04a5e5",
+        "#209fb5",
+        "#1e66f5",
+        "#7287fd",
       ];
 
+      function currentColors() {
+        return prefersLight.value ? LATTE_COLORS : MOCHA_COLORS;
+      }
+
       const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+      const prefersLight = ref(
+        window.matchMedia("(prefers-color-scheme: light)").matches,
+      );
 
       createApp({
         setup() {
@@ -761,7 +782,8 @@
 
           const colorFor = (model) => {
             const i = models.value.indexOf(model);
-            return COLORS[i % COLORS.length];
+            const colors = currentColors();
+            return colors[i % colors.length];
           };
 
           const filteredSnapshots = computed(() => {
@@ -923,12 +945,20 @@
             };
           }
 
+          function getCssColor(name) {
+            const el = document.body;
+            const value = getComputedStyle(el).getPropertyValue(name).trim();
+            return value || "#cdd6f4";
+          }
+
           function renderCharts() {
             const snaps = filteredSnapshots.value;
             if (snaps.length < 2) return;
             if (!tpsChart.value || !ttftChart.value) return;
 
             const isMobile = window.innerWidth < 768;
+            const mutedColor = getCssColor("--muted");
+            const borderColor = getCssColor("--border");
 
             const commonOpts = {
               responsive: true,
@@ -937,10 +967,10 @@
               interaction: { mode: "nearest", intersect: true },
               plugins: {
                 tooltip: {
-                  backgroundColor: "#0d1117",
-                  titleColor: "#f0f6fc",
-                  bodyColor: "#f0f6fc",
-                  borderColor: "#30363d",
+                  backgroundColor: getCssColor("--chart-tooltip-bg"),
+                  titleColor: getCssColor("--chart-tooltip-text"),
+                  bodyColor: getCssColor("--chart-tooltip-text"),
+                  borderColor: getCssColor("--chart-tooltip-border"),
                   borderWidth: 1,
                   padding: 8,
                   displayColors: true,
@@ -954,20 +984,20 @@
               scales: {
                 x: {
                   ticks: {
-                    color: "var(--muted)",
+                    color: mutedColor,
                     maxRotation: isMobile ? 90 : 45,
                     autoSkip: true,
                     maxTicksLimit: isMobile ? 4 : 8,
                     font: { size: isMobile ? 9 : 12 },
                   },
-                  grid: { color: "var(--border)" },
+                  grid: { color: borderColor },
                 },
                 y: {
                   ticks: {
-                    color: "var(--muted)",
+                    color: mutedColor,
                     font: { size: isMobile ? 9 : 12 },
                   },
-                  grid: { color: "var(--border)" },
+                  grid: { color: borderColor },
                 },
               },
             };
@@ -1001,6 +1031,13 @@
             () => nextTick(renderCharts),
             { deep: true },
           );
+
+          window
+            .matchMedia("(prefers-color-scheme: light)")
+            .addEventListener("change", (e) => {
+              prefersLight.value = e.matches;
+              nextTick(renderCharts);
+            });
 
           onMounted(async () => {
             try {
