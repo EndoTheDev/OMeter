@@ -12,7 +12,7 @@ Project documentation files and the GitHub Pages web dashboard. The dashboard is
 ## Local Contracts
 
 - Dashboard is a single HTML file — no build step, no npm/Vite/SFCs.
-- Vue 3, Chart.js, and chartjs-plugin-zoom loaded from CDN.
+- Vue 3, Chart.js loaded from CDN.
 - Benchmark data lives at `docs/data/benchmark-history.json`.
 - Catppuccin Latte/Mocha for light/dark mode via `prefers-color-scheme`.
 - No API keys or credentials in the dashboard.

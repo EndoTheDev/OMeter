@@ -11,7 +11,7 @@ GitHub Actions workflows and helper scripts for automated benchmarking and deplo
 
 ## Local Contracts
 
-- Benchmark runs every 6h via cron.
+- Benchmark runs every 2h via cron.
 - Uses `uv run python` (not `python3`) to use the project venv.
 - `GITHUB_TOKEN` needs `contents: write` to push benchmark data back.
 - Merge script at `.github/merge_benchmark.py` hardens against empty/invalid input.

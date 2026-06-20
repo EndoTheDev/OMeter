@@ -8,7 +8,7 @@
     <title>OMeter — Ollama Cloud Benchmarks</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+
     <style>
       :root {
         --bg: #11111b;
@@ -121,7 +121,7 @@
           height: 100vh;
           border-right: 1px solid var(--border);
           border-bottom: none;
-          padding: 20px;
+          padding: 16px;
           overflow-y: auto;
           overscroll-behavior: contain;
         }
@@ -135,7 +135,7 @@
           flex: 1;
           min-width: 0;
           height: 420px;
-          padding: 16px;
+          padding: 12px;
         }
       }
       .sidebar::-webkit-scrollbar {
@@ -285,7 +285,6 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 12px;
-        margin-bottom: 16px;
         height: 260px;
         display: flex;
         flex-direction: column;
@@ -300,22 +299,6 @@
         font-size: 16px;
         margin: 0;
         color: var(--heading);
-      }
-      .chart-zoom {
-        display: flex;
-        gap: 6px;
-      }
-      .chart-zoom button {
-        background: var(--input-bg);
-        color: var(--text);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 13px;
-        cursor: pointer;
-      }
-      .chart-zoom button:hover {
-        background: var(--hover);
       }
       .chart-container canvas {
         flex: 1;
@@ -376,6 +359,7 @@
         color: var(--note-text);
         font-size: 13px;
         margin-top: 4px;
+        text-align: center;
       }
     </style>
   </head>
@@ -385,7 +369,7 @@
         <h1>OMeter</h1>
         <p class="subtitle">Ollama Cloud benchmarks</p>
         <p class="vibes">
-          made for you with vibes by:<br>
+          made for you with vibes by:<br />
           <a
             href="https://github.com/EndoTheDev"
             target="_blank"
@@ -517,8 +501,19 @@
         </div>
 
         <div class="filter-section models-section">
-          <h2>Models</h2>
-          <div class="model-list">
+          <button
+            class="filter-toggle"
+            @click="modelsOpen = !modelsOpen">
+            Models
+            <span
+              class="toggle-arrow"
+              :class="{open: modelsOpen}"
+              >▶</span
+            >
+          </button>
+          <div
+            v-show="modelsOpen"
+            class="model-list">
             <label
               v-for="m in filteredModelNames"
               :key="m"
@@ -559,32 +554,16 @@
         <div
           class="charts-row"
           v-if="filteredSnapshots.length >= 2">
-          <div
-            class="chart-container"
-            @mouseenter="activeChart = 'tps'"
-            @mouseleave="activeChart = null">
+          <div class="chart-container">
             <div class="chart-header">
               <h2>Tokens per Second (higher is better)</h2>
-              <div class="chart-zoom">
-                <button @click="zoomChart('tps', 1.2)">+</button>
-                <button @click="zoomChart('tps', 0.8)">−</button>
-                <button @click="resetZoom('tps')">Reset</button>
-              </div>
             </div>
             <canvas ref="tpsChart"></canvas>
           </div>
 
-          <div
-            class="chart-container"
-            @mouseenter="activeChart = 'ttft'"
-            @mouseleave="activeChart = null">
+          <div class="chart-container">
             <div class="chart-header">
               <h2>Time to First Token (lower is better)</h2>
-              <div class="chart-zoom">
-                <button @click="zoomChart('ttft', 1.2)">+</button>
-                <button @click="zoomChart('ttft', 0.8)">−</button>
-                <button @click="resetZoom('ttft')">Reset</button>
-              </div>
             </div>
             <canvas ref="ttftChart"></canvas>
           </div>
@@ -592,86 +571,86 @@
 
         <div v-if="filteredSnapshots.length > 0">
           <div style="overflow-x: auto">
-          <table>
-            <thead>
-              <tr>
-                <th @click="sortBy='model';sortDir*=-1">
-                  Model<span
-                    class="sort-arrow"
-                    v-if="sortBy==='model'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='size';sortDir*=-1">
-                  Params<span
-                    class="sort-arrow"
-                    v-if="sortBy==='size'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='context';sortDir*=-1">
-                  Context<span
-                    class="sort-arrow"
-                    v-if="sortBy==='context'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='quant';sortDir*=-1">
-                  Quant<span
-                    class="sort-arrow"
-                    v-if="sortBy==='quant'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='tps';sortDir*=-1">
-                  TPS<span
-                    class="sort-arrow"
-                    v-if="sortBy==='tps'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='ttft';sortDir*=-1">
-                  TTFT (ms)<span
-                    class="sort-arrow"
-                    v-if="sortBy==='ttft'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-                <th @click="sortBy='capabilities';sortDir*=-1">
-                  Capabilities<span
-                    class="sort-arrow"
-                    v-if="sortBy==='capabilities'"
-                    >{{ sortDir > 0 ? '▲' : '▼' }}</span
-                  >
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in sortedLatest"
-                :key="r.model">
-                <td>
-                  <span
-                    class="model-badge"
-                    :style="{background: colorFor(r.model)}"></span
-                  >{{ r.model }}
-                </td>
-                <td>{{ r.size || '—' }}</td>
-                <td>{{ formatContext(r.context) }}</td>
-                <td>{{ r.quant || '—' }}</td>
-                <td>{{ r.tps.toFixed(1) }}</td>
-                <td>{{ (r.ttft * 1000).toFixed(0) }}</td>
-                <td>
-                  <span
-                    v-for="cap in r.capabilities.split(', ').filter(Boolean)"
-                    :key="cap"
-                    class="capability-tag"
-                    >{{ cap }}</span
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <table>
+              <thead>
+                <tr>
+                  <th @click="sortBy='model';sortDir*=-1">
+                    Model<span
+                      class="sort-arrow"
+                      v-if="sortBy==='model'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='size';sortDir*=-1">
+                    Params<span
+                      class="sort-arrow"
+                      v-if="sortBy==='size'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='context';sortDir*=-1">
+                    Context<span
+                      class="sort-arrow"
+                      v-if="sortBy==='context'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='quant';sortDir*=-1">
+                    Quant<span
+                      class="sort-arrow"
+                      v-if="sortBy==='quant'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='tps';sortDir*=-1">
+                    TPS<span
+                      class="sort-arrow"
+                      v-if="sortBy==='tps'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='ttft';sortDir*=-1">
+                    TTFT (ms)<span
+                      class="sort-arrow"
+                      v-if="sortBy==='ttft'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                  <th @click="sortBy='capabilities';sortDir*=-1">
+                    Capabilities<span
+                      class="sort-arrow"
+                      v-if="sortBy==='capabilities'"
+                      >{{ sortDir > 0 ? '▲' : '▼' }}</span
+                    >
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in sortedLatest"
+                  :key="r.model">
+                  <td>
+                    <span
+                      class="model-badge"
+                      :style="{background: colorFor(r.model)}"></span
+                    >{{ r.model }}
+                  </td>
+                  <td>{{ r.size && r.size !== '0' ? r.size : '—' }}</td>
+                  <td>{{ formatContext(r.context) }}</td>
+                  <td>{{ r.quant || '—' }}</td>
+                  <td>{{ r.tps.toFixed(1) }}</td>
+                  <td>{{ (r.ttft * 1000).toFixed(0) }}</td>
+                  <td>
+                    <span
+                      v-for="cap in r.capabilities.split(', ').filter(Boolean)"
+                      :key="cap"
+                      class="capability-tag"
+                      >{{ cap }}</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <p class="note">
             Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
@@ -718,7 +697,7 @@
           const tpsChart = ref(null);
           const ttftChart = ref(null);
           const advancedOpen = ref(false);
-          const activeChart = ref(null);
+          const modelsOpen = ref(true);
           let tpsChartInstance = null;
           let ttftChartInstance = null;
 
@@ -884,20 +863,6 @@
             return n;
           }
 
-          function zoomChart(chartName, factor) {
-            const chart =
-              chartName === "tps" ? tpsChartInstance : ttftChartInstance;
-            if (!chart) return;
-            chart.zoomScale("x", { o: 1 - factor, n: factor }, "default");
-          }
-
-          function resetZoom(chartName) {
-            const chart =
-              chartName === "tps" ? tpsChartInstance : ttftChartInstance;
-            if (!chart) return;
-            chart.resetZoom();
-          }
-
           function formatContext(value) {
             const n = parseInt(value || "0", 10);
             if (!n) return "—";
@@ -985,14 +950,6 @@
                   },
                 },
                 legend: { display: false },
-                zoom: {
-                  pan: { enabled: false, mode: "x" },
-                  zoom: {
-                    wheel: { enabled: false },
-                    drag: { enabled: false },
-                    mode: "x",
-                  },
-                },
               },
               scales: {
                 x: {
@@ -1006,7 +963,10 @@
                   grid: { color: "var(--border)" },
                 },
                 y: {
-                  ticks: { color: "var(--muted)", font: { size: isMobile ? 9 : 12 } },
+                  ticks: {
+                    color: "var(--muted)",
+                    font: { size: isMobile ? 9 : 12 },
+                  },
                   grid: { color: "var(--border)" },
                 },
               },
@@ -1068,6 +1028,7 @@
             sortBy,
             sortDir,
             advancedOpen,
+            modelsOpen,
             filteredSnapshots,
             sortedLatest,
             totalLatestModels,
@@ -1075,9 +1036,6 @@
             formatContext,
             tpsChart,
             ttftChart,
-            activeChart,
-            zoomChart,
-            resetZoom,
           };
         },
       }).mount("#app");

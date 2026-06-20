@@ -2,7 +2,7 @@ name: Benchmark Ollama Cloud Models
 
 on:
   schedule:
-    - cron: "0 3,9,15,21 * * *"
+    - cron: "0 */2 * * *"
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Benchmark cloud models
         env:
           OLLAMA_CLOUD_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
-        run: uv run ometer --cloud --ttft --tps --runs 3 --parallel 3 --num_predict 2000 --json > benchmark-latest.json
+        run: uv run ometer --cloud --ttft --tps --runs 3 --parallel 3 --num_predict 500 --json > benchmark-latest.json
 
       - name: Merge into time-series history
         run: uv run python .github/merge_benchmark.py benchmark-latest.json docs/data/benchmark-history.json
