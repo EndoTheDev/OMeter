@@ -32,8 +32,5 @@ history["runs"].append(
     }
 )
 
-# ponytail: keep last 90 runs (3 months at daily)
-history["runs"] = history["runs"][-90:]
-
 with open(history_path, "w") as f:
     json.dump(history, f, indent=2)

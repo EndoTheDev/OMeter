@@ -306,6 +306,25 @@
         margin: 0;
         color: var(--heading);
       }
+      .time-presets {
+        display: flex;
+        gap: 4px;
+      }
+      .time-preset-btn {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+        color: var(--muted);
+        cursor: pointer;
+        line-height: 1.4;
+      }
+      .time-preset-btn.active {
+        background: var(--chip-active-bg);
+        border-color: var(--chip-active-border);
+        color: var(--chip-active-text);
+      }
       .chart-container canvas {
         flex: 1;
         min-height: 0;
@@ -563,6 +582,24 @@
           <div class="chart-container">
             <div class="chart-header">
               <h2>Tokens per Second (higher is better)</h2>
+              <div class="time-presets">
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === 'all'}"
+                  @click="setTimePreset('all')">all</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '30'}"
+                  @click="setTimePreset('30')">30d</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '7'}"
+                  @click="setTimePreset('7')">7d</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '1'}"
+                  @click="setTimePreset('1')">1d</button>
+              </div>
             </div>
             <canvas ref="tpsChart"></canvas>
           </div>
@@ -570,6 +607,24 @@
           <div class="chart-container">
             <div class="chart-header">
               <h2>Time to First Token (lower is better)</h2>
+              <div class="time-presets">
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === 'all'}"
+                  @click="setTimePreset('all')">all</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '30'}"
+                  @click="setTimePreset('30')">30d</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '7'}"
+                  @click="setTimePreset('7')">7d</button>
+                <button
+                  class="time-preset-btn"
+                  :class="{active: timePreset === '1'}"
+                  @click="setTimePreset('1')">1d</button>
+              </div>
             </div>
             <canvas ref="ttftChart"></canvas>
           </div>
@@ -713,6 +768,7 @@
           const searchText = ref("");
           const dateFrom = ref("");
           const dateTo = ref("");
+          const timePreset = ref("all");
           const sortBy = ref("tps");
           const sortDir = ref(-1);
           const tpsChart = ref(null);
@@ -893,6 +949,19 @@
             return String(n);
           }
 
+          function setTimePreset(preset) {
+            timePreset.value = preset;
+            if (preset === "all") {
+              dateFrom.value = "";
+              dateTo.value = "";
+            } else {
+              const d = new Date();
+              d.setDate(d.getDate() - parseInt(preset));
+              dateFrom.value = d.toISOString().slice(0, 10);
+              dateTo.value = "";
+            }
+          }
+
           function buildChartData(snaps, field) {
             let activeModels =
               selectedModels.value.length > 0 ?
@@ -1067,6 +1136,8 @@
             totalLatestModels,
             colorFor,
             formatContext,
+            timePreset,
+            setTimePreset,
             tpsChart,
             ttftChart,
           };
