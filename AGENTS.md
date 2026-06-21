@@ -90,14 +90,14 @@ Children may NOT weaken the root Core Contract. They may only add scope-specific
 
 - ollama cloud does not support embedding models yet.
 - GitHub Pages URL: https://EndoTheDev.github.io/OMeter/
-- Benchmark cron: every 2h via `.github/workflows/benchmark.yml`
+- Benchmark cron: every hour via `.github/workflows/benchmark.yml`
 - Secret: `OLLAMA_CLOUD_API_KEY` in GitHub Actions secrets
 
 ## Child DOX Index
 
-| Path                   | Status | What it owns                                                      |
-| ---------------------- | ------ | ----------------------------------------------------------------- |
-| `src/ometer/AGENTS.md` | Stub   | Core library modules (cli, api, config, display, export, history) |
-| `tests/AGENTS.md`      | Stub   | Test suite conventions and coverage targets                       |
-| `docs/AGENTS.md`       | Stub   | Documentation files and the web dashboard                         |
-| `.github/AGENTS.md`    | Stub   | CI/CD workflows and merge scripts                                 |
+| Path                   | Status        | What it owns                                                      |
+| ---------------------- | ------------- | ----------------------------------------------------------------- |
+| `src/ometer/AGENTS.md` | Implemented   | Core library modules (cli, api, config, display, export, history) |
+| `tests/AGENTS.md`      | Implemented   | Test suite conventions and coverage targets                       |
+| `docs/AGENTS.md`       | Implemented   | Documentation files and the web dashboard                         |
+| `.github/AGENTS.md`    | Implemented   | CI/CD workflows and merge scripts                                 |

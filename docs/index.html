@@ -932,14 +932,10 @@
             return {
               labels: snaps.map((s) => {
                 const d = new Date(s.timestamp);
-                return (
-                  d.toLocaleDateString() +
-                  " " +
-                  d.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                );
+                return d.toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                });
               }),
               datasets,
             };
