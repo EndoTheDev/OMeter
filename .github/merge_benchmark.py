@@ -6,7 +6,6 @@ Usage: merge_benchmark.py <latest.json> <history.json>
 
 import json
 import sys
-from datetime import datetime, timezone
 
 latest_path, history_path = sys.argv[1], sys.argv[2]
 
@@ -25,9 +24,14 @@ try:
 except FileNotFoundError, json.JSONDecodeError:
     history = {"runs": []}
 
+if history.get("runs") and "timestamp" in history["runs"][0]:
+    for i, run in enumerate(history["runs"]):
+        run.pop("timestamp", None)
+        run["run"] = i
+
 history["runs"].append(
     {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "run": len(history["runs"]),
         "models": latest_results,
     }
 )

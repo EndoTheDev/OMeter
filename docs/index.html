@@ -97,7 +97,8 @@
       #app {
         display: flex;
         flex-direction: column;
-        min-height: 100vh;
+        height: 100vh;
+        overflow: hidden;
       }
       .sidebar {
         background: var(--panel);
@@ -106,8 +107,11 @@
       }
       .main-content {
         flex: 1;
-        padding: 16px;
+        padding: 16px 16px 0;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
       }
       .charts-row {
         display: flex;
@@ -132,7 +136,7 @@
           overscroll-behavior: contain;
         }
         .main-content {
-          padding: 24px;
+          padding: 24px 24px 0;
         }
         .charts-row {
           flex-direction: row;
@@ -334,9 +338,12 @@
         border-collapse: collapse;
         background: var(--panel);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
         font-size: 14px;
+      }
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
       }
       th,
       td {
@@ -442,18 +449,20 @@
             v-show="advancedOpen"
             class="advanced-filters">
             <div class="filter-section">
-              <h2>Date range</h2>
+              <h2>Run range</h2>
               <div class="date-row">
                 <label>From</label
                 ><input
-                  type="date"
-                  v-model="dateFrom" />
+                  type="number"
+                  min="0"
+                  v-model.number="runFrom" />
               </div>
               <div class="date-row">
                 <label>To</label
                 ><input
-                  type="date"
-                  v-model="dateTo" />
+                  type="number"
+                  min="0"
+                  v-model.number="runTo" />
               </div>
             </div>
 
@@ -524,39 +533,6 @@
               border-radius: 6px;
             " />
         </div>
-
-        <div class="filter-section models-section">
-          <button
-            class="filter-toggle"
-            @click="modelsOpen = !modelsOpen">
-            Models
-            <span
-              class="toggle-arrow"
-              :class="{open: modelsOpen}"
-              >▶</span
-            >
-          </button>
-          <div
-            v-show="modelsOpen"
-            class="model-list">
-            <label
-              v-for="m in filteredModelNames"
-              :key="m"
-              class="model-checkbox"
-              :title="m">
-              <span class="model-name">
-                <span
-                  class="model-badge"
-                  :style="{background: colorFor(m)}"></span>
-                <span :style="{color: colorFor(m)}">{{ m }}</span>
-              </span>
-              <input
-                type="checkbox"
-                :value="m"
-                v-model="selectedModels" />
-            </label>
-          </div>
-        </div>
       </aside>
 
       <main class="main-content">
@@ -586,19 +562,27 @@
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === 'all'}"
-                  @click="setTimePreset('all')">all</button>
+                  @click="setTimePreset('all')">
+                  all
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '30'}"
-                  @click="setTimePreset('30')">30d</button>
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '7'}"
-                  @click="setTimePreset('7')">7d</button>
+                  @click="setTimePreset('7')">
+                  7d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '1'}"
-                  @click="setTimePreset('1')">1d</button>
+                  @click="setTimePreset('1')">
+                  1d
+                </button>
               </div>
             </div>
             <canvas ref="tpsChart"></canvas>
@@ -611,30 +595,54 @@
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === 'all'}"
-                  @click="setTimePreset('all')">all</button>
+                  @click="setTimePreset('all')">
+                  all
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '30'}"
-                  @click="setTimePreset('30')">30d</button>
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '7'}"
-                  @click="setTimePreset('7')">7d</button>
+                  @click="setTimePreset('7')">
+                  7d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '1'}"
-                  @click="setTimePreset('1')">1d</button>
+                  @click="setTimePreset('1')">
+                  1d
+                </button>
               </div>
             </div>
             <canvas ref="ttftChart"></canvas>
           </div>
         </div>
 
-        <div v-if="filteredSnapshots.length > 0">
-          <div style="overflow-x: auto">
+        <div
+          v-if="filteredSnapshots.length > 0"
+          style="flex: 1; min-height: 0; display: flex; flex-direction: column">
+          <div
+            style="
+              overflow-x: auto;
+              overflow-y: auto;
+              flex: 1;
+              min-height: 0;
+              border-radius: 8px;
+            ">
             <table>
               <thead>
                 <tr>
+                  <th style="width: 1px">
+                    <input
+                      type="checkbox"
+                      title="Toggle all visible"
+                      :checked="selectedModels.length > 0 && selectedModels.length === sortedLatest.length"
+                      @change="selectedModels = $event.target.checked ? sortedLatest.map((r) => r.model) : []" />
+                  </th>
                   <th @click="sortBy='model';sortDir*=-1">
                     Model<span
                       class="sort-arrow"
@@ -689,7 +697,15 @@
               <tbody>
                 <tr
                   v-for="r in sortedLatest"
-                  :key="r.model">
+                  :key="r.model"
+                  @mouseenter="hoveredModel = r.model"
+                  @mouseleave="hoveredModel = null">
+                  <td @click.stop="">
+                    <input
+                      type="checkbox"
+                      :value="r.model"
+                      v-model="selectedModels" />
+                  </td>
                   <td>
                     <span
                       class="model-badge"
@@ -713,7 +729,9 @@
               </tbody>
             </table>
           </div>
-          <p class="note">
+          <p
+            class="note"
+            style="padding-bottom: 8px">
             Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
           </p>
         </div>
@@ -766,15 +784,16 @@
           const minParams = ref(null);
           const maxParams = ref(null);
           const searchText = ref("");
-          const dateFrom = ref("");
-          const dateTo = ref("");
+          const runFrom = ref(null);
+          const runTo = ref(null);
           const timePreset = ref("all");
           const sortBy = ref("tps");
           const sortDir = ref(-1);
           const tpsChart = ref(null);
           const ttftChart = ref(null);
-          const advancedOpen = ref(false);
+          const advancedOpen = ref(true);
           const modelsOpen = ref(true);
+          const hoveredModel = ref(null);
           let tpsChartInstance = null;
           let ttftChartInstance = null;
 
@@ -844,13 +863,11 @@
 
           const filteredSnapshots = computed(() => {
             let snaps = rawData.value;
-            if (dateFrom.value) {
-              const f = new Date(dateFrom.value);
-              snaps = snaps.filter((s) => new Date(s.timestamp) >= f);
+            if (runFrom.value != null) {
+              snaps = snaps.filter((s) => s.run >= runFrom.value);
             }
-            if (dateTo.value) {
-              const t = new Date(dateTo.value + "T23:59:59");
-              snaps = snaps.filter((s) => new Date(s.timestamp) <= t);
+            if (runTo.value != null) {
+              snaps = snaps.filter((s) => s.run <= runTo.value);
             }
             return snaps;
           });
@@ -863,11 +880,6 @@
             if (searchText.value.trim()) {
               const q = searchText.value.trim().toLowerCase();
               items = items.filter((r) => r.model.toLowerCase().includes(q));
-            }
-            if (selectedModels.value.length > 0) {
-              items = items.filter((r) =>
-                selectedModels.value.includes(r.model),
-              );
             }
             if (selectedCapabilities.value.length > 0) {
               items = items.filter((r) =>
@@ -952,62 +964,150 @@
           function setTimePreset(preset) {
             timePreset.value = preset;
             if (preset === "all") {
-              dateFrom.value = "";
-              dateTo.value = "";
+              runFrom.value = null;
+              runTo.value = null;
             } else {
-              const d = new Date();
-              d.setDate(d.getDate() - parseInt(preset));
-              dateFrom.value = d.toISOString().slice(0, 10);
-              dateTo.value = "";
+              const maxRun = rawData.value.length - 1;
+              const count = parseInt(preset);
+              runFrom.value = Math.max(0, maxRun - count + 1);
+              runTo.value = maxRun;
             }
           }
 
-          function buildChartData(snaps, field) {
-            let activeModels =
-              selectedModels.value.length > 0 ?
-                selectedModels.value
-              : models.value;
-            if (selectedCapabilities.value.length > 0) {
-              activeModels = activeModels.filter((model) => {
-                const last = snaps[snaps.length - 1];
-                const r = (last?.models || []).find((x) => x.model === model);
-                return (
-                  r &&
-                  selectedCapabilities.value.every((c) =>
-                    (r.capabilities || "").includes(c),
-                  )
-                );
+          function datasetStyle(hov, model) {
+            const hasSelection = selectedModels.value.length > 0;
+            const isSelected = selectedModels.value.includes(model);
+            const isHovered = hov === model;
+            const base = {
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              pointHoverBorderWidth: 0,
+              pointBackgroundColor: "transparent",
+              pointHoverBackgroundColor: "transparent",
+              hitRadius: 0,
+            };
+            if (isHovered) {
+              return {
+                borderColor: colorFor(model),
+                backgroundColor: colorFor(model) + "30",
+                borderWidth: 3,
+                ...base,
+              };
+            }
+            if (isSelected) {
+              return {
+                borderColor: colorFor(model),
+                backgroundColor: colorFor(model) + "15",
+                borderWidth: 2,
+                ...base,
+              };
+            }
+            return {
+              borderColor: colorFor(model) + "33",
+              backgroundColor: colorFor(model) + "0d",
+              borderWidth: 1,
+              ...base,
+            };
+          }
+
+          function bucketFor(runIndex) {
+            const preset = timePreset.value;
+            if (preset === "all") return null;
+            return runIndex;
+          }
+
+          function buildTimeGrid(snaps) {
+            if (!snaps.length) return null;
+            const preset = timePreset.value;
+            if (preset === "all") return null;
+            const maxRun = snaps[snaps.length - 1].run;
+            if (preset === "1") {
+              const slots = [];
+              for (let i = 23; i >= 0; i--) {
+                const run = maxRun - i;
+                slots.push({
+                  run,
+                  label: i % 2 === 0 ? run.toString() : "",
+                });
+              }
+              return slots;
+            }
+            const days = preset === "7" ? 7 : 30;
+            const slots = [];
+            for (let i = days - 1; i >= 0; i--) {
+              const run = maxRun - i;
+              slots.push({
+                run,
+                label: i % (preset === "7" ? 1 : 5) === 0 ? run.toString() : "",
               });
             }
-            const datasets = activeModels.map((model) => ({
-              label: model,
-              data: snaps.map((s) => {
-                const r = (s.models || []).find((x) => x.model === model);
-                return (
-                  r ?
-                    field === "ttft" ?
-                      r.ttft * 1000
-                    : r[field]
-                  : null
-                );
-              }),
-              borderColor: colorFor(model),
-              backgroundColor: colorFor(model) + "20",
-              borderWidth: 2,
-              pointRadius: 3,
-              tension: 0.1,
-              spanGaps: true,
-            }));
-            return {
-              labels: snaps.map((s) => {
-                const d = new Date(s.timestamp);
-                return d.toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
+            return slots;
+          }
+
+          function buildChartData(snaps, field) {
+            const grid = buildTimeGrid(snaps);
+            const activeModels = (() => {
+              let list = models.value;
+              if (selectedCapabilities.value.length > 0) {
+                const last = snaps[snaps.length - 1];
+                list = list.filter((model) => {
+                  const r = (last?.models || []).find((x) => x.model === model);
+                  return (
+                    r &&
+                    selectedCapabilities.value.every((c) =>
+                      (r.capabilities || "").includes(c),
+                    )
+                  );
                 });
-              }),
-              datasets,
-            };
+              }
+              return list;
+            })();
+            const hov = hoveredModel.value;
+            let labels;
+            let datasets;
+            if (grid) {
+              labels = grid.map((g) => g.label);
+              const bucketMap = new Map(grid.map((g, idx) => [g.run, idx]));
+              datasets = activeModels.map((model) => {
+                const byBucket = new Array(grid.length).fill(null);
+                for (const s of snaps) {
+                  const bucketRun = bucketFor(s.run);
+                  if (bucketRun === null) continue;
+                  const idx = bucketMap.get(bucketRun);
+                  if (idx === undefined) continue;
+                  const r = (s.models || []).find((x) => x.model === model);
+                  if (!r) continue;
+                  const value = field === "ttft" ? r.ttft * 1000 : r[field];
+                  byBucket[idx] = value;
+                }
+                return {
+                  label: model,
+                  data: byBucket,
+                  tension: 0.1,
+                  spanGaps: true,
+                  ...datasetStyle(hov, model),
+                };
+              });
+            } else {
+              labels = snaps.map((s) => s.run.toString());
+              datasets = activeModels.map((model) => ({
+                label: model,
+                data: snaps.map((s) => {
+                  const r = (s.models || []).find((x) => x.model === model);
+                  return (
+                    r ?
+                      field === "ttft" ?
+                        r.ttft * 1000
+                      : r[field]
+                    : null
+                  );
+                }),
+                tension: 0.1,
+                spanGaps: true,
+                ...datasetStyle(hov, model),
+              }));
+            }
+            return { labels, datasets };
           }
 
           function getCssColor(name) {
@@ -1082,6 +1182,17 @@
             });
           }
 
+          function updateChartHover() {
+            const hov = hoveredModel.value;
+            [tpsChartInstance, ttftChartInstance].forEach((chart) => {
+              if (!chart) return;
+              chart.data.datasets.forEach((dataset) => {
+                Object.assign(dataset, datasetStyle(hov, dataset.label));
+              });
+              chart.update("none");
+            });
+          }
+
           watch(
             [
               filteredSnapshots,
@@ -1092,10 +1203,14 @@
               minParams,
               maxParams,
               searchText,
+              runFrom,
+              runTo,
             ],
             () => nextTick(renderCharts),
             { deep: true },
           );
+
+          watch(hoveredModel, () => nextTick(updateChartHover));
 
           window
             .matchMedia("(prefers-color-scheme: light)")
@@ -1125,8 +1240,8 @@
             minParams,
             maxParams,
             searchText,
-            dateFrom,
-            dateTo,
+            runFrom,
+            runTo,
             sortBy,
             sortDir,
             advancedOpen,
@@ -1138,6 +1253,7 @@
             formatContext,
             timePreset,
             setTimePreset,
+            hoveredModel,
             tpsChart,
             ttftChart,
           };
