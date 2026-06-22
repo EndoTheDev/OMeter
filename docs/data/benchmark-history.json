@@ -9229,6 +9229,361 @@
           "tps": 62.584044593147446
         }
       ]
+    },
+    {
+      "timestamp": "2026-06-22T06:05:11.298908+00:00",
+      "models": [
+        {
+          "model": "glm-5.2",
+          "size": "756.2B",
+          "context": "1000000",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-16T08:00:00-07:00",
+          "ttft": 1.1358685333333323,
+          "tps": 79.03034681843349
+        },
+        {
+          "model": "kimi-k2.7-code",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-12T00:00:00Z",
+          "ttft": 1.291843392333334,
+          "tps": 85.7714942274168
+        },
+        {
+          "model": "nemotron-3-ultra",
+          "size": "550B",
+          "context": "262144",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-04T00:00:00Z",
+          "ttft": 12.53466031099999,
+          "tps": 10.648475791477345
+        },
+        {
+          "model": "minimax-m3",
+          "size": "0",
+          "context": "524288",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-01T00:00:00Z",
+          "ttft": 1.2116724819999973,
+          "tps": 40.25159862854792
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "size": "1.6T",
+          "context": "524288",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-04-24T00:00:00Z",
+          "ttft": 0.7507355123333402,
+          "tps": 84.94293464949102
+        },
+        {
+          "model": "deepseek-v4-flash",
+          "size": "158B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-04-24T00:00:00Z",
+          "ttft": 0.8271031029999989,
+          "tps": 93.01585357075344
+        },
+        {
+          "model": "glm-5.1",
+          "size": "756.2B",
+          "context": "202752",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-04-07T08:00:00-07:00",
+          "ttft": 1.1792332693333378,
+          "tps": 56.09567085900439
+        },
+        {
+          "model": "gemma4:31b",
+          "size": "32.7B",
+          "context": "262144",
+          "quant": "BF16",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-04-02T09:00:00-08:00",
+          "ttft": 1.3744419540000006,
+          "tps": 35.48275910254708
+        },
+        {
+          "model": "kimi-k2.6",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-03-31T00:00:00Z",
+          "ttft": 1.3904907190000035,
+          "tps": 42.62851045349108
+        },
+        {
+          "model": "minimax-m2.7",
+          "size": "229B",
+          "context": "196608",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-03-18T00:00:00Z",
+          "ttft": 1.8570036703333415,
+          "tps": 34.7615409177753
+        },
+        {
+          "model": "nemotron-3-super",
+          "size": "120B",
+          "context": "262144",
+          "quant": "NVFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-03-11T00:00:00Z",
+          "ttft": 4.574418315000003,
+          "tps": 18.1563415536337
+        },
+        {
+          "model": "qwen3.5:397b",
+          "size": "397B",
+          "context": "262144",
+          "quant": "BF16",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-02-16T00:00:00Z",
+          "ttft": 0.804830848000004,
+          "tps": 38.9395321606373
+        },
+        {
+          "model": "minimax-m2.5",
+          "size": "230B",
+          "context": "196608",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-02-12T00:00:00Z",
+          "ttft": 0.7398111776666573,
+          "tps": 70.2281072958824
+        },
+        {
+          "model": "glm-5",
+          "size": "756.2B",
+          "context": "202752",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-02-11T00:00:00Z",
+          "ttft": 3.71162788866666,
+          "tps": 39.91983191488264
+        },
+        {
+          "model": "kimi-k2.5",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-01-26T00:00:00Z",
+          "ttft": 0.767123405333308,
+          "tps": 60.99303009938956
+        },
+        {
+          "model": "glm-4.7",
+          "size": "357B",
+          "context": "202752",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-12-22T00:00:00Z",
+          "ttft": 0.4045404279999995,
+          "tps": 214.30641805822992
+        },
+        {
+          "model": "minimax-m2.1",
+          "size": "230B",
+          "context": "204800",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-12-20T00:00:00Z",
+          "ttft": 1.514903219999989,
+          "tps": 110.0149749329309
+        },
+        {
+          "model": "gemini-3-flash-preview",
+          "size": "0",
+          "context": "1048576",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2025-12-17T00:00:00Z",
+          "ttft": 1.695144373333316,
+          "tps": 165.18177425456062
+        },
+        {
+          "model": "nemotron-3-nano:30b",
+          "size": "32B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-12-15T00:00:00Z",
+          "ttft": 0.4310728589999826,
+          "tps": 123.07097278966232
+        },
+        {
+          "model": "devstral-small-2:24b",
+          "size": "24B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-09T00:00:00Z",
+          "ttft": 0.5380406913333218,
+          "tps": 51.298391833429555
+        },
+        {
+          "model": "rnj-1:8b",
+          "size": "8B",
+          "context": "32768",
+          "quant": "FP16",
+          "capabilities": "completion, tools",
+          "modified_at": "2025-12-09T00:00:00Z",
+          "ttft": 0.3786663549999882,
+          "tps": 76.81800977644198
+        },
+        {
+          "model": "devstral-2:123b",
+          "size": "123B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools",
+          "modified_at": "2025-12-08T00:00:00Z",
+          "ttft": 0.5725800539999947,
+          "tps": 47.42691361215461
+        },
+        {
+          "model": "mistral-large-3:675b",
+          "size": "675B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 0.5916677426666865,
+          "tps": 47.02895759969431
+        },
+        {
+          "model": "ministral-3:8b",
+          "size": "8B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 1.6879041463333426,
+          "tps": 68.67629018740352
+        },
+        {
+          "model": "deepseek-v3.2",
+          "size": "671B",
+          "context": "163840",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 1.693032118333349,
+          "tps": 13.655101681894683
+        },
+        {
+          "model": "ministral-3:3b",
+          "size": "3B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 0.5130140829999922,
+          "tps": 99.49331705818558
+        },
+        {
+          "model": "ministral-3:14b",
+          "size": "14B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 0.4436138823333143,
+          "tps": 62.511037321501114
+        },
+        {
+          "model": "deepseek-v3.1:671b",
+          "size": "671B",
+          "context": "163840",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-11-20T00:00:00Z",
+          "ttft": 1.562469667666657,
+          "tps": 6.935669494164486
+        },
+        {
+          "model": "gpt-oss:120b",
+          "size": "116.8B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 1.3174838600000005,
+          "tps": 66.5281258290105
+        },
+        {
+          "model": "gpt-oss:20b",
+          "size": "20.9B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 1.4172216953333152,
+          "tps": 78.42747106920152
+        },
+        {
+          "model": "qwen3-coder:480b",
+          "size": "480B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools",
+          "modified_at": "2025-07-22T00:00:00Z",
+          "ttft": 0.8385992753333275,
+          "tps": 64.32071644516374
+        },
+        {
+          "model": "gemma3:12b",
+          "size": "12B",
+          "context": "131072",
+          "quant": "BF16",
+          "capabilities": "completion, vision",
+          "modified_at": "2025-03-12T00:00:00Z",
+          "ttft": 0.5252516310000033,
+          "tps": 28.77240983226387
+        },
+        {
+          "model": "gemma3:4b",
+          "size": "4B",
+          "context": "131072",
+          "quant": "BF16",
+          "capabilities": "completion, vision",
+          "modified_at": "2025-03-12T00:00:00Z",
+          "ttft": 3.2595935346666542,
+          "tps": 11.53398698974568
+        },
+        {
+          "model": "gemma3:27b",
+          "size": "27B",
+          "context": "131072",
+          "quant": "BF16",
+          "capabilities": "completion, vision",
+          "modified_at": "2025-03-12T00:00:00Z",
+          "ttft": 0.6252364023333333,
+          "tps": 13.130964492463645
+        },
+        {
+          "model": "qwen3-coder-next",
+          "size": "80B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools",
+          "modified_at": "2025-02-04T00:00:00Z",
+          "ttft": 0.4418346336666635,
+          "tps": 49.20541558366107
+        }
+      ]
     }
   ]
 }
