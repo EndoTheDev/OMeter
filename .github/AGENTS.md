@@ -21,7 +21,7 @@ GitHub Actions workflows and helper scripts for automated benchmarking and deplo
 
 - To test the workflow locally, push to main and check Actions tab.
 - The merge script appends latest snapshot to `docs/data/benchmark-history.json` with no cap.
-- After a repo rename, update the remote URL in the workflow if needed.
+- After a repo rename, update the repository URLs in `pyproject.toml` and this AGENTS.md if needed.
 
 ## Verification
 

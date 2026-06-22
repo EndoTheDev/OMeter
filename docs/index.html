@@ -106,8 +106,11 @@
       }
       .main-content {
         flex: 1;
-        padding: 16px;
+        padding: 16px 16px 0;
         min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
       .charts-row {
         display: flex;
@@ -132,7 +135,9 @@
           overscroll-behavior: contain;
         }
         .main-content {
-          padding: 24px;
+          padding: 24px 24px 0;
+          height: 100vh;
+          overflow-y: auto;
         }
         .charts-row {
           flex-direction: row;
@@ -217,9 +222,6 @@
       .search-section {
         margin-bottom: 12px;
       }
-      .models-section {
-        margin-top: 16px;
-      }
       .capability-list {
         display: flex;
         flex-wrap: wrap;
@@ -243,48 +245,6 @@
       }
       .capability-chip input {
         display: none;
-      }
-      .model-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .model-checkbox {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        padding: 4px 6px;
-        border-radius: 4px;
-      }
-      .model-checkbox:hover {
-        background: var(--hover);
-      }
-      .model-checkbox input {
-        cursor: pointer;
-        order: 2;
-      }
-      .model-name {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        order: 1;
-        min-width: 0;
-      }
-      .model-name span:last-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .model-badge {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        margin-right: 8px;
       }
       .chart-container {
         background: var(--panel);
@@ -329,14 +289,36 @@
         flex: 1;
         min-height: 0;
       }
+      .table-section {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .table-scroll {
+        overflow: auto;
+        flex: 1;
+        min-height: 0;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
         background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
         font-size: 14px;
+      }
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      th:first-child,
+      td:first-child {
+        padding-left: 8px;
+        padding-right: 6px;
+        width: 36px;
+        text-align: center;
       }
       th,
       td {
@@ -362,6 +344,17 @@
       tr:hover td {
         background: var(--hover);
       }
+      .row-checkbox {
+        cursor: pointer;
+      }
+      .model-badge {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
       .capability-tag {
         display: inline-block;
         font-size: 12px;
@@ -384,6 +377,7 @@
         color: var(--note-text);
         font-size: 13px;
         margin-top: 4px;
+        padding-bottom: 8px;
         text-align: center;
       }
     </style>
@@ -450,8 +444,8 @@
                   v-model="dateFrom" />
               </div>
               <div class="date-row">
-                <label>To</label
-                ><input
+                <label>To</label>
+                <input
                   type="date"
                   v-model="dateTo" />
               </div>
@@ -483,8 +477,8 @@
                   placeholder="0" />
               </div>
               <div class="date-row">
-                <label>Max</label
-                ><input
+                <label>Max</label>
+                <input
                   type="number"
                   v-model.number="maxContext"
                   placeholder="∞" />
@@ -501,8 +495,8 @@
                   placeholder="0" />
               </div>
               <div class="date-row">
-                <label>Max</label
-                ><input
+                <label>Max</label>
+                <input
                   type="number"
                   v-model.number="maxParams"
                   placeholder="∞" />
@@ -523,39 +517,6 @@
               font-size: 13px;
               border-radius: 6px;
             " />
-        </div>
-
-        <div class="filter-section models-section">
-          <button
-            class="filter-toggle"
-            @click="modelsOpen = !modelsOpen">
-            Models
-            <span
-              class="toggle-arrow"
-              :class="{open: modelsOpen}"
-              >▶</span
-            >
-          </button>
-          <div
-            v-show="modelsOpen"
-            class="model-list">
-            <label
-              v-for="m in filteredModelNames"
-              :key="m"
-              class="model-checkbox"
-              :title="m">
-              <span class="model-name">
-                <span
-                  class="model-badge"
-                  :style="{background: colorFor(m)}"></span>
-                <span :style="{color: colorFor(m)}">{{ m }}</span>
-              </span>
-              <input
-                type="checkbox"
-                :value="m"
-                v-model="selectedModels" />
-            </label>
-          </div>
         </div>
       </aside>
 
@@ -586,19 +547,27 @@
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === 'all'}"
-                  @click="setTimePreset('all')">all</button>
+                  @click="setTimePreset('all')">
+                  all
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '30'}"
-                  @click="setTimePreset('30')">30d</button>
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '7'}"
-                  @click="setTimePreset('7')">7d</button>
+                  @click="setTimePreset('7')">
+                  7d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '1'}"
-                  @click="setTimePreset('1')">1d</button>
+                  @click="setTimePreset('1')">
+                  1d
+                </button>
               </div>
             </div>
             <canvas ref="tpsChart"></canvas>
@@ -611,30 +580,46 @@
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === 'all'}"
-                  @click="setTimePreset('all')">all</button>
+                  @click="setTimePreset('all')">
+                  all
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '30'}"
-                  @click="setTimePreset('30')">30d</button>
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '7'}"
-                  @click="setTimePreset('7')">7d</button>
+                  @click="setTimePreset('7')">
+                  7d
+                </button>
                 <button
                   class="time-preset-btn"
                   :class="{active: timePreset === '1'}"
-                  @click="setTimePreset('1')">1d</button>
+                  @click="setTimePreset('1')">
+                  1d
+                </button>
               </div>
             </div>
             <canvas ref="ttftChart"></canvas>
           </div>
         </div>
 
-        <div v-if="filteredSnapshots.length > 0">
-          <div style="overflow-x: auto">
+        <div
+          v-if="filteredSnapshots.length > 0"
+          class="table-section">
+          <div class="table-scroll">
             <table>
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      :checked="allSelected"
+                      @change="toggleAll" />
+                  </th>
                   <th @click="sortBy='model';sortDir*=-1">
                     Model<span
                       class="sort-arrow"
@@ -689,7 +674,15 @@
               <tbody>
                 <tr
                   v-for="r in sortedLatest"
-                  :key="r.model">
+                  :key="r.model"
+                  @mouseenter="hoveredModel = r.model"
+                  @mouseleave="hoveredModel = null">
+                  <td class="row-checkbox">
+                    <input
+                      type="checkbox"
+                      :value="r.model"
+                      v-model="selectedModels" />
+                  </td>
                   <td>
                     <span
                       class="model-badge"
@@ -773,8 +766,8 @@
           const sortDir = ref(-1);
           const tpsChart = ref(null);
           const ttftChart = ref(null);
-          const advancedOpen = ref(false);
-          const modelsOpen = ref(true);
+          const advancedOpen = ref(true);
+          const hoveredModel = ref(null);
           let tpsChartInstance = null;
           let ttftChartInstance = null;
 
@@ -829,13 +822,6 @@
             return [...s].sort();
           });
 
-          const filteredModelNames = computed(() => {
-            const q = searchText.value.trim().toLowerCase();
-            return q ?
-                models.value.filter((m) => m.toLowerCase().includes(q))
-              : models.value;
-          });
-
           const colorFor = (model) => {
             const i = models.value.indexOf(model);
             const colors = currentColors();
@@ -863,11 +849,6 @@
             if (searchText.value.trim()) {
               const q = searchText.value.trim().toLowerCase();
               items = items.filter((r) => r.model.toLowerCase().includes(q));
-            }
-            if (selectedModels.value.length > 0) {
-              items = items.filter((r) =>
-                selectedModels.value.includes(r.model),
-              );
             }
             if (selectedCapabilities.value.length > 0) {
               items = items.filter((r) =>
@@ -919,6 +900,27 @@
             return items;
           });
 
+          const allSelected = computed(() => {
+            const names = sortedLatest.value.map((r) => r.model);
+            return (
+              names.length > 0 &&
+              names.every((m) => selectedModels.value.includes(m))
+            );
+          });
+
+          function toggleAll() {
+            const names = sortedLatest.value.map((r) => r.model);
+            if (allSelected.value) {
+              selectedModels.value = selectedModels.value.filter(
+                (m) => !names.includes(m),
+              );
+            } else {
+              const set = new Set(selectedModels.value);
+              names.forEach((m) => set.add(m));
+              selectedModels.value = [...set];
+            }
+          }
+
           function sortValue(item, field) {
             if (field === "size") return normalizeSize(item.size);
             if (field === "context") return parseInt(item.context || "0", 10);
@@ -962,14 +964,95 @@
             }
           }
 
+          function bucketFor(ts, preset, anchor) {
+            const d = new Date(ts);
+            if (preset === "all") return d.getTime();
+            const presetNum = parseInt(preset);
+            const diffMs = anchor.getTime() - d.getTime();
+            if (presetNum === 1) {
+              return Math.floor(diffMs / 3600000);
+            }
+            return Math.floor(diffMs / 86400000);
+          }
+
+          function buildTimeGrid(snaps) {
+            if (timePreset.value === "all" || snaps.length === 0) return null;
+            const latest = new Date(snaps[snaps.length - 1].timestamp);
+            const presetNum = parseInt(timePreset.value);
+            const slots = [];
+            if (presetNum === 1) {
+              for (let i = 23; i >= 0; i--) {
+                const t = new Date(latest.getTime() - i * 3600000);
+                slots.push({
+                  key: i,
+                  label: t.toLocaleTimeString([], {
+                    hour: "numeric",
+                    hour12: true,
+                  }),
+                });
+              }
+            } else {
+              const count = presetNum;
+              for (let i = count - 1; i >= 0; i--) {
+                const t = new Date(latest.getTime() - i * 86400000);
+                slots.push({
+                  key: i,
+                  label: t.toLocaleDateString([], {
+                    month: "short",
+                    day: "numeric",
+                  }),
+                });
+              }
+            }
+            return slots;
+          }
+
+          function hexToRgba(hex, alpha) {
+            const clean = hex.replace("#", "");
+            const bigint = parseInt(clean, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          }
+
+          function datasetStyle(model) {
+            const base = colorFor(model);
+            const isHovered = hoveredModel.value === model;
+            const isSelected = selectedModels.value.includes(model);
+            if (isHovered) {
+              return {
+                borderColor: base,
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                backgroundColor: "transparent",
+              };
+            }
+            if (isSelected) {
+              return {
+                borderColor: base,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                backgroundColor: "transparent",
+              };
+            }
+            return {
+              borderColor: hexToRgba(base, 0.2),
+              borderWidth: 1,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              backgroundColor: "transparent",
+            };
+          }
+
           function buildChartData(snaps, field) {
-            let activeModels =
-              selectedModels.value.length > 0 ?
-                selectedModels.value
-              : models.value;
+            const grid = buildTimeGrid(snaps);
+            let activeModels = models.value;
             if (selectedCapabilities.value.length > 0) {
+              const last = snaps[snaps.length - 1];
               activeModels = activeModels.filter((model) => {
-                const last = snaps[snaps.length - 1];
                 const r = (last?.models || []).find((x) => x.model === model);
                 return (
                   r &&
@@ -979,35 +1062,68 @@
                 );
               });
             }
-            const datasets = activeModels.map((model) => ({
-              label: model,
-              data: snaps.map((s) => {
-                const r = (s.models || []).find((x) => x.model === model);
-                return (
-                  r ?
-                    field === "ttft" ?
-                      r.ttft * 1000
-                    : r[field]
-                  : null
-                );
-              }),
-              borderColor: colorFor(model),
-              backgroundColor: colorFor(model) + "20",
-              borderWidth: 2,
-              pointRadius: 3,
-              tension: 0.1,
-              spanGaps: true,
-            }));
-            return {
-              labels: snaps.map((s) => {
+
+            let labels;
+            let dataForModel;
+            if (grid) {
+              labels = grid.map((s) => s.label);
+              const anchor = new Date(snaps[snaps.length - 1].timestamp);
+              dataForModel = (model) => {
+                const byBucket = {};
+                snaps.forEach((s) => {
+                  const r = (s.models || []).find((x) => x.model === model);
+                  if (!r) return;
+                  const b = bucketFor(s.timestamp, timePreset.value, anchor);
+                  byBucket[b] = field === "ttft" ? r.ttft * 1000 : r[field];
+                });
+                return grid.map((slot) => byBucket[slot.key] ?? null);
+              };
+            } else {
+              labels = snaps.map((s) => {
                 const d = new Date(s.timestamp);
                 return d.toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
                 });
-              }),
-              datasets,
-            };
+              });
+              dataForModel = (model) =>
+                snaps.map((s) => {
+                  const r = (s.models || []).find((x) => x.model === model);
+                  return (
+                    r ?
+                      field === "ttft" ?
+                        r.ttft * 1000
+                      : r[field]
+                    : null
+                  );
+                });
+            }
+
+            const datasets = activeModels.map((model) => ({
+              label: model,
+              data: dataForModel(model),
+              ...datasetStyle(model),
+              tension: 0.1,
+              spanGaps: true,
+              pointHoverBorderWidth: 0,
+              pointHoverBackgroundColor: "transparent",
+              hitRadius: 0,
+            }));
+            return { labels, datasets };
+          }
+
+          function updateChartHover() {
+            if (!tpsChartInstance || !ttftChartInstance) return;
+            [tpsChartInstance, ttftChartInstance].forEach((chart) => {
+              chart.data.datasets.forEach((ds) => {
+                const style = datasetStyle(ds.label);
+                ds.borderColor = style.borderColor;
+                ds.borderWidth = style.borderWidth;
+                ds.pointRadius = style.pointRadius;
+                ds.pointHoverRadius = style.pointHoverRadius;
+              });
+              chart.update("none");
+            });
           }
 
           function getCssColor(name) {
@@ -1025,47 +1141,53 @@
             const mutedColor = getCssColor("--muted");
             const borderColor = getCssColor("--border");
 
-            const commonOpts = {
-              responsive: true,
-              maintainAspectRatio: false,
-              layout: { padding: isMobile ? 4 : 8 },
-              interaction: { mode: "nearest", intersect: true },
-              plugins: {
-                tooltip: {
-                  backgroundColor: getCssColor("--chart-tooltip-bg"),
-                  titleColor: getCssColor("--chart-tooltip-text"),
-                  bodyColor: getCssColor("--chart-tooltip-text"),
-                  borderColor: getCssColor("--chart-tooltip-border"),
-                  borderWidth: 1,
-                  padding: 8,
-                  displayColors: true,
-                  callbacks: {
-                    label: (ctx) =>
-                      ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}`,
+            function makeOptions(logY) {
+              return {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: isMobile ? 4 : 8 },
+                interaction: { mode: "nearest", intersect: true },
+                plugins: {
+                  tooltip: {
+                    backgroundColor: getCssColor("--chart-tooltip-bg"),
+                    titleColor: getCssColor("--chart-tooltip-text"),
+                    bodyColor: getCssColor("--chart-tooltip-text"),
+                    borderColor: getCssColor("--chart-tooltip-border"),
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: true,
+                    callbacks: {
+                      label: (ctx) => {
+                        const v = ctx.parsed.y;
+                        const formatted = logY ? v.toFixed(0) : v.toFixed(1);
+                        return ` ${ctx.dataset.label}: ${formatted}`;
+                      },
+                    },
+                  },
+                  legend: { display: false },
+                },
+                scales: {
+                  x: {
+                    ticks: {
+                      color: mutedColor,
+                      maxRotation: isMobile ? 90 : 45,
+                      autoSkip: true,
+                      maxTicksLimit: isMobile ? 4 : 8,
+                      font: { size: isMobile ? 9 : 12 },
+                    },
+                    grid: { color: borderColor },
+                  },
+                  y: {
+                    type: logY ? "logarithmic" : "linear",
+                    ticks: {
+                      color: mutedColor,
+                      font: { size: isMobile ? 9 : 12 },
+                    },
+                    grid: { color: borderColor },
                   },
                 },
-                legend: { display: false },
-              },
-              scales: {
-                x: {
-                  ticks: {
-                    color: mutedColor,
-                    maxRotation: isMobile ? 90 : 45,
-                    autoSkip: true,
-                    maxTicksLimit: isMobile ? 4 : 8,
-                    font: { size: isMobile ? 9 : 12 },
-                  },
-                  grid: { color: borderColor },
-                },
-                y: {
-                  ticks: {
-                    color: mutedColor,
-                    font: { size: isMobile ? 9 : 12 },
-                  },
-                  grid: { color: borderColor },
-                },
-              },
-            };
+              };
+            }
 
             if (tpsChartInstance) tpsChartInstance.destroy();
             if (ttftChartInstance) ttftChartInstance.destroy();
@@ -1073,12 +1195,12 @@
             tpsChartInstance = new Chart(tpsChart.value, {
               type: "line",
               data: buildChartData(snaps, "tps"),
-              options: commonOpts,
+              options: makeOptions(false),
             });
             ttftChartInstance = new Chart(ttftChart.value, {
               type: "line",
               data: buildChartData(snaps, "ttft"),
-              options: commonOpts,
+              options: makeOptions(true),
             });
           }
 
@@ -1092,10 +1214,15 @@
               minParams,
               maxParams,
               searchText,
+              dateFrom,
+              dateTo,
+              timePreset,
             ],
             () => nextTick(renderCharts),
             { deep: true },
           );
+
+          watch(hoveredModel, () => nextTick(updateChartHover));
 
           window
             .matchMedia("(prefers-color-scheme: light)")
@@ -1116,7 +1243,6 @@
 
           return {
             models,
-            filteredModelNames,
             capabilities,
             selectedModels,
             selectedCapabilities,
@@ -1130,10 +1256,12 @@
             sortBy,
             sortDir,
             advancedOpen,
-            modelsOpen,
+            hoveredModel,
             filteredSnapshots,
             sortedLatest,
             totalLatestModels,
+            allSelected,
+            toggleAll,
             colorFor,
             formatContext,
             timePreset,
