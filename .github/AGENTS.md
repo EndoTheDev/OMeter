@@ -25,7 +25,7 @@ GitHub Actions workflows and helper scripts for automated benchmarking and deplo
 
 ## Verification
 
-- Check https://github.com/EndoTheDev/OMeter/actions after push.
+- Check <https://github.com/EndoTheDev/OMeter/actions> after push.
 - Verify `docs/data/benchmark-history.json` has new entries after a run.
 
 ## Child DOX Index

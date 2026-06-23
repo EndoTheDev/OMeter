@@ -7,7 +7,7 @@ Benchmark and compare Ollama models across local and cloud endpoints. Provides a
 ## Ownership
 
 - **Owner:** EndoTheDev
-- **Repository:** https://github.com/EndoTheDev/OMeter
+- **Repository:** <https://github.com/EndoTheDev/OMeter>
 - **License:** MIT
 
 ## Core Contract
@@ -26,7 +26,7 @@ Benchmark and compare Ollama models across local and cloud endpoints. Provides a
 - Python 3.14+ required. The formatter normalizes `except A, B:` syntax (comma-separated, not `as`). It is NOT a bug.
 - Source lives under `src/ometer/` (hatchling layout).
 - Tests live under `tests/` with pytest.
-- The dashboard is a single HTML file at `docs/index.html` with Vue 3 + Chart.js from CDN.
+- The dashboard is a single HTML file at `docs/index.html` with Vue 3, Chart.js, and Tailwind CSS from CDN.
 - Benchmark data is at `docs/data/benchmark-history.json`, updated by a GitHub Actions cron.
 
 ## Update After Editing
@@ -38,7 +38,7 @@ Benchmark and compare Ollama models across local and cloud endpoints. Provides a
 
 ## Hierarchy
 
-```
+```txt
 AGENTS.md (root — this file)
 ├── src/ometer/AGENTS.md  — core library
 ├── tests/AGENTS.md       — test suite
@@ -89,15 +89,15 @@ Children may NOT weaken the root Core Contract. They may only add scope-specific
 ## Infos
 
 - ollama cloud does not support embedding models yet.
-- GitHub Pages URL: https://EndoTheDev.github.io/OMeter/
+- GitHub Pages URL: <https://EndoTheDev.github.io/OMeter/>
 - Benchmark cron: every hour via `.github/workflows/benchmark.yml`
 - Secret: `OLLAMA_CLOUD_API_KEY` in GitHub Actions secrets
 
 ## Child DOX Index
 
-| Path                   | Status        | What it owns                                                      |
-| ---------------------- | ------------- | ----------------------------------------------------------------- |
-| `src/ometer/AGENTS.md` | Implemented   | Core library modules (cli, api, config, display, export, history) |
-| `tests/AGENTS.md`      | Implemented   | Test suite conventions and coverage targets                       |
-| `docs/AGENTS.md`       | Implemented   | Documentation files and the web dashboard                         |
-| `.github/AGENTS.md`    | Implemented   | CI/CD workflows and merge scripts                                 |
+| Path                   | Status      | What it owns                                                      |
+| ---------------------- | ----------- | ----------------------------------------------------------------- |
+| `src/ometer/AGENTS.md` | Implemented | Core library modules (cli, api, config, display, export, history) |
+| `tests/AGENTS.md`      | Implemented | Test suite conventions and coverage targets                       |
+| `docs/AGENTS.md`       | Implemented | Documentation files and the web dashboard                         |
+| `.github/AGENTS.md`    | Implemented | CI/CD workflows and merge scripts                                 |

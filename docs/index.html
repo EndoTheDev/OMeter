@@ -8,6 +8,7 @@
     <title>OMeter — Ollama Cloud Benchmarks</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
       :root {
@@ -52,11 +53,6 @@
           --chart-tooltip-border: #bcc0cc;
         }
       }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -71,336 +67,45 @@
       ::-webkit-scrollbar-thumb:hover {
         background: var(--muted);
       }
-      body {
-        background: var(--bg);
-        color: var(--text);
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 14px;
-      }
-      h1 {
-        font-size: 28px;
-        margin-bottom: 4px;
-        color: var(--heading);
-      }
-      .subtitle {
-        color: var(--muted);
-        font-size: 14px;
-        margin-bottom: 2px;
-      }
-      .vibes {
-        color: var(--muted);
-        font-size: 12px;
-        margin-bottom: 16px;
-        font-style: italic;
-      }
-      #app {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-      }
-      .sidebar {
-        background: var(--panel);
-        border-bottom: 1px solid var(--border);
-        padding: 16px;
-      }
-      .main-content {
-        flex: 1;
-        padding: 16px 16px 0;
-        min-width: 0;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .charts-row {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        margin-bottom: 16px;
-      }
-      @media (min-width: 768px) {
-        #app {
-          flex-direction: row;
-        }
-        .sidebar {
-          width: 288px;
-          flex-shrink: 0;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          border-right: 1px solid var(--border);
-          border-bottom: none;
-          padding: 16px;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-        }
-        .main-content {
-          padding: 24px 24px 0;
-          height: 100vh;
-          overflow-y: auto;
-        }
-        .charts-row {
-          flex-direction: row;
-        }
-        .charts-row > .chart-container {
-          flex: 1;
-          min-width: 0;
-          height: 420px;
-          padding: 12px;
-        }
-      }
-      .sidebar::-webkit-scrollbar {
+      .sidebar-scroll::-webkit-scrollbar {
         width: 6px;
       }
-      .sidebar::-webkit-scrollbar-track {
+      .sidebar-scroll::-webkit-scrollbar-track {
         background: transparent;
       }
-      .sidebar::-webkit-scrollbar-thumb {
+      .sidebar-scroll::-webkit-scrollbar-thumb {
         background: var(--border);
         border-radius: 3px;
       }
-      .sidebar::-webkit-scrollbar-thumb:hover {
+      .sidebar-scroll::-webkit-scrollbar-thumb:hover {
         background: var(--muted);
-      }
-      .sidebar h2 {
-        font-size: 14px;
-        color: var(--muted);
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .date-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-      .date-row label {
-        font-size: 13px;
-        color: var(--muted);
-        width: 40px;
-      }
-      input[type="date"],
-      input[type="number"],
-      input[type="text"] {
-        background: var(--input-bg);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 13px;
-        flex: 1;
-      }
-      .filter-toggle {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: transparent;
-        border: none;
-        color: var(--muted);
-        padding: 0;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .filter-toggle:hover {
-        color: var(--text);
-      }
-      .toggle-arrow {
-        transition: transform 0.2s;
-        font-size: 12px;
-      }
-      .toggle-arrow.open {
-        transform: rotate(90deg);
-      }
-      .filter-section {
-        margin-bottom: 16px;
-      }
-      .search-section {
-        margin-bottom: 12px;
-      }
-      .capability-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-      .capability-chip {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 13px;
-        cursor: pointer;
-        padding: 4px 5px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: var(--input-bg);
-      }
-      .capability-chip.active {
-        background: var(--chip-active-bg);
-        border-color: var(--chip-active-border);
-        color: var(--chip-active-text);
-      }
-      .capability-chip input {
-        display: none;
-      }
-      .chart-container {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 12px;
-        height: 260px;
-        display: flex;
-        flex-direction: column;
-      }
-      .chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-      .chart-header h2 {
-        font-size: 16px;
-        margin: 0;
-        color: var(--heading);
-      }
-      .time-presets {
-        display: flex;
-        gap: 4px;
-      }
-      .time-preset-btn {
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 4px;
-        border: 1px solid var(--border);
-        background: var(--input-bg);
-        color: var(--muted);
-        cursor: pointer;
-        line-height: 1.4;
-      }
-      .time-preset-btn.active {
-        background: var(--chip-active-bg);
-        border-color: var(--chip-active-border);
-        color: var(--chip-active-text);
-      }
-      .chart-container canvas {
-        flex: 1;
-        min-height: 0;
-      }
-      .table-section {
-        flex: 1;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .table-scroll {
-        overflow: auto;
-        flex: 1;
-        min-height: 0;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--panel);
-        font-size: 14px;
-      }
-      thead {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-      th:first-child,
-      td:first-child {
-        padding-left: 8px;
-        padding-right: 6px;
-        width: 36px;
-        text-align: center;
-      }
-      th,
-      td {
-        padding: 8px 12px;
-        text-align: left;
-        border-bottom: 1px solid var(--border);
-        white-space: nowrap;
-      }
-      th {
-        background: var(--hover);
-        color: var(--muted);
-        font-weight: 600;
-        cursor: pointer;
-        user-select: none;
-      }
-      th:hover {
-        color: var(--heading);
-      }
-      th .sort-arrow {
-        color: var(--accent);
-        margin-left: 4px;
-      }
-      tr:hover td {
-        background: var(--hover);
-      }
-      .row-checkbox {
-        cursor: pointer;
-      }
-      .model-badge {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-right: 4px;
-        vertical-align: middle;
-      }
-      .capability-tag {
-        display: inline-block;
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: var(--cap-tag-bg);
-        color: var(--cap-tag-text);
-        margin-right: 4px;
-      }
-      .empty-state {
-        text-align: center;
-        padding: 48px;
-        color: var(--muted);
-      }
-      .empty-state p {
-        font-size: 16px;
-        margin-bottom: 8px;
-      }
-      .note {
-        color: var(--note-text);
-        font-size: 13px;
-        margin-top: 4px;
-        padding-bottom: 8px;
-        text-align: center;
       }
     </style>
   </head>
-  <body>
-    <div id="app">
-      <aside class="sidebar">
-        <h1>OMeter</h1>
-        <p class="subtitle">Ollama Cloud benchmarks</p>
-        <p class="vibes">
+  <body class="bg-[var(--bg)] text-[var(--text)] font-sans text-sm m-0">
+    <div
+      id="app"
+      class="flex flex-col min-h-screen md:flex-row">
+      <aside
+        class="sidebar-scroll bg-[var(--panel)] border-b border-[var(--border)] p-4 md:w-72 md:flex-shrink-0 md:sticky md:top-0 md:h-screen md:border-r md:border-b-0 md:overflow-y-auto md:overscroll-contain">
+        <h1 class="text-[28px] mb-1 text-[var(--heading)]">OMeter</h1>
+        <p class="text-[var(--muted)] text-sm mb-0.5">
+          Ollama Cloud benchmarks
+        </p>
+        <p class="text-[var(--muted)] text-xs mb-4 italic">
           made for you with vibes by:<br />
           <a
             href="https://github.com/EndoTheDev"
             target="_blank"
             rel="noopener"
-            style="color: var(--accent); text-decoration: none"
+            class="text-[var(--accent)] no-underline"
             >Endo</a
           >🎵 &amp;
           <a
             href="https://ollama.com/library/kimi-k2.7-code"
             target="_blank"
             rel="noopener"
-            style="color: var(--accent); text-decoration: none"
+            class="text-[var(--accent)] no-underline"
             >Kimi</a
           >
           &amp;
@@ -408,7 +113,7 @@
             href="https://github.com/nousresearch/hermes-agent"
             target="_blank"
             rel="noopener"
-            style="color: var(--accent); text-decoration: none"
+            class="text-[var(--accent)] no-underline"
             >Hermes</a
           >
           &amp;
@@ -416,255 +121,296 @@
             href="https://github.com/ollama/ollama"
             target="_blank"
             rel="noopener"
-            style="color: var(--accent); text-decoration: none"
+            class="text-[var(--accent)] no-underline"
             >Ollama</a
           >
         </p>
 
-        <div class="filter-section">
+        <div class="mb-4">
           <button
-            class="filter-toggle"
+            class="w-full flex items-center justify-between bg-transparent border-none text-[var(--muted)] p-0 cursor-pointer text-sm font-bold uppercase tracking-wide hover:text-[var(--text)]"
             @click="advancedOpen = !advancedOpen">
             Advanced filters
             <span
-              class="toggle-arrow"
-              :class="{open: advancedOpen}"
+              class="transition-transform duration-200 text-xs"
+              :class="{'rotate-90': advancedOpen}"
               >▶</span
             >
           </button>
-          <div
-            v-show="advancedOpen"
-            class="advanced-filters">
-            <div class="filter-section">
-              <h2>Date range</h2>
-              <div class="date-row">
-                <label>From</label
+          <div v-show="advancedOpen">
+            <div class="mb-4">
+              <h2
+                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
+                Date range
+              </h2>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">From</label
                 ><input
                   type="date"
-                  v-model="dateFrom" />
+                  v-model="dateFrom"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
-              <div class="date-row">
-                <label>To</label>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">To</label>
                 <input
                   type="date"
-                  v-model="dateTo" />
+                  v-model="dateTo"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
             </div>
 
-            <div class="filter-section">
-              <h2>Capabilities</h2>
-              <div class="capability-list">
+            <div class="mb-4">
+              <h2
+                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
+                Capabilities
+              </h2>
+              <div class="flex flex-wrap gap-1">
                 <label
                   v-for="c in capabilities"
                   :key="c"
-                  class="capability-chip"
-                  :class="{active: selectedCapabilities.includes(c)}">
+                  class="flex items-center gap-1 text-[13px] cursor-pointer py-1 px-[5px] rounded-xl border border-[var(--border)] bg-[var(--input-bg)]"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': selectedCapabilities.includes(c)}">
                   <input
                     type="checkbox"
                     :value="c"
-                    v-model="selectedCapabilities" />{{ c }}
+                    v-model="selectedCapabilities"
+                    class="hidden" />{{ c }}
                 </label>
               </div>
             </div>
 
-            <div class="filter-section">
-              <h2>Context window</h2>
-              <div class="date-row">
-                <label>Min</label
+            <div class="mb-4">
+              <h2
+                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
+                Context window
+              </h2>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">Min</label
                 ><input
                   type="number"
                   v-model.number="minContext"
-                  placeholder="0" />
+                  placeholder="0"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
-              <div class="date-row">
-                <label>Max</label>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">Max</label>
                 <input
                   type="number"
                   v-model.number="maxContext"
-                  placeholder="∞" />
+                  placeholder="∞"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
             </div>
 
-            <div class="filter-section">
-              <h2>Parameters</h2>
-              <div class="date-row">
-                <label>Min</label
+            <div class="mb-4">
+              <h2
+                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
+                Parameters
+              </h2>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">Min</label
                 ><input
                   type="number"
                   v-model.number="minParams"
-                  placeholder="0" />
+                  placeholder="0"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
-              <div class="date-row">
-                <label>Max</label>
+              <div class="flex items-center gap-2 mb-3">
+                <label class="text-[13px] text-[var(--muted)] w-10">Max</label>
                 <input
                   type="number"
                   v-model.number="maxParams"
-                  placeholder="∞" />
+                  placeholder="∞"
+                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
               </div>
             </div>
           </div>
         </div>
 
-        <div class="filter-section search-section">
-          <h2>Search models</h2>
+        <div class="mb-3">
+          <h2 class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
+            Search models
+          </h2>
           <input
             type="text"
             v-model="searchText"
             placeholder="e.g. qwen"
-            style="
-              width: 100%;
-              padding: 6px 10px;
-              font-size: 13px;
-              border-radius: 6px;
-            " />
+            class="w-full py-1.5 px-2.5 text-[13px] rounded-md bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)]" />
         </div>
       </aside>
 
-      <main class="main-content">
+      <main
+        class="flex-1 p-4 pb-0 min-w-0 min-h-0 flex flex-col md:p-6 md:pb-0 md:h-screen md:overflow-y-auto">
         <div
           v-if="filteredSnapshots.length === 0"
-          class="empty-state">
-          <p>No benchmark data yet</p>
+          class="text-center p-12 text-[var(--muted)]">
+          <p class="text-base mb-2">No benchmark data yet</p>
           <p>Waiting for the first scheduled run...</p>
         </div>
 
         <div
           v-else-if="filteredSnapshots.length === 1"
-          class="chart-container">
-          <p style="text-align: center; color: var(--muted); padding: 32px">
+          class="bg-[var(--panel)] border border-[var(--border)] rounded-lg p-3 h-[260px] flex flex-col">
+          <p class="text-center text-[var(--muted)] p-8">
             Time-series charts will appear once more than one benchmark run is
             collected.
           </p>
         </div>
 
         <div
-          class="charts-row"
+          class="flex flex-col gap-4 mb-4 md:flex-row"
           v-if="filteredSnapshots.length >= 2">
-          <div class="chart-container">
-            <div class="chart-header">
-              <h2>Tokens per Second (higher is better)</h2>
-              <div class="time-presets">
+          <div
+            class="bg-[var(--panel)] border border-[var(--border)] rounded-lg p-3 h-[260px] flex flex-col md:flex-1 md:min-w-0 md:h-[420px]">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-base m-0 text-[var(--heading)]">
+                Tokens per Second (higher is better)
+              </h2>
+              <div class="flex gap-1">
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === 'all'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === 'all'}"
                   @click="setTimePreset('all')">
                   all
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '30'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
                   @click="setTimePreset('30')">
                   30d
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '7'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '7'}"
                   @click="setTimePreset('7')">
                   7d
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '1'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
                   @click="setTimePreset('1')">
                   1d
                 </button>
               </div>
             </div>
-            <canvas ref="tpsChart"></canvas>
+            <canvas
+              ref="tpsChart"
+              class="flex-1 min-h-0"></canvas>
           </div>
 
-          <div class="chart-container">
-            <div class="chart-header">
-              <h2>Time to First Token (lower is better)</h2>
-              <div class="time-presets">
+          <div
+            class="bg-[var(--panel)] border border-[var(--border)] rounded-lg p-3 h-[260px] flex flex-col md:flex-1 md:min-w-0 md:h-[420px]">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-base m-0 text-[var(--heading)]">
+                Time to First Token (lower is better)
+              </h2>
+              <div class="flex gap-1">
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === 'all'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === 'all'}"
                   @click="setTimePreset('all')">
                   all
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '30'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
                   @click="setTimePreset('30')">
                   30d
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '7'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '7'}"
                   @click="setTimePreset('7')">
                   7d
                 </button>
                 <button
-                  class="time-preset-btn"
-                  :class="{active: timePreset === '1'}"
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
                   @click="setTimePreset('1')">
                   1d
                 </button>
               </div>
             </div>
-            <canvas ref="ttftChart"></canvas>
+            <canvas
+              ref="ttftChart"
+              class="flex-1 min-h-0"></canvas>
           </div>
         </div>
 
         <div
           v-if="filteredSnapshots.length > 0"
-          class="table-section">
-          <div class="table-scroll">
-            <table>
-              <thead>
+          class="flex-1 min-h-0 flex flex-col">
+          <div
+            class="overflow-auto flex-1 min-h-0 border border-[var(--border)] rounded-lg">
+            <table class="w-full border-collapse bg-[var(--panel)] text-sm">
+              <thead class="sticky top-0 z-[1]">
                 <tr>
-                  <th>
+                  <th
+                    class="pl-2 pr-1.5 w-9 text-center py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     <input
                       type="checkbox"
                       :checked="allSelected"
                       @change="toggleAll" />
                   </th>
-                  <th @click="sortBy='model';sortDir*=-1">
+                  <th
+                    @click="sortBy='model';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     Model<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='model'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='size';sortDir*=-1">
+                  <th
+                    @click="sortBy='size';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     Params<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='size'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='context';sortDir*=-1">
+                  <th
+                    @click="sortBy='context';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     Context<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='context'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='quant';sortDir*=-1">
+                  <th
+                    @click="sortBy='quant';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     Quant<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='quant'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='tps';sortDir*=-1">
+                  <th
+                    @click="sortBy='tps';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     TPS<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='tps'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='ttft';sortDir*=-1">
+                  <th
+                    @click="sortBy='ttft';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     TTFT (ms)<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='ttft'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
                   </th>
-                  <th @click="sortBy='capabilities';sortDir*=-1">
+                  <th
+                    @click="sortBy='capabilities';sortDir*=-1"
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold cursor-pointer select-none hover:text-[var(--heading)]">
                     Capabilities<span
-                      class="sort-arrow"
+                      class="text-[var(--accent)] ml-1"
                       v-if="sortBy==='capabilities'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
@@ -675,30 +421,49 @@
                 <tr
                   v-for="r in sortedLatest"
                   :key="r.model"
+                  class="group"
                   @mouseenter="hoveredModel = r.model"
                   @mouseleave="hoveredModel = null">
-                  <td class="row-checkbox">
+                  <td
+                    class="pl-2 pr-1.5 w-9 text-center py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap cursor-pointer group-hover:bg-[var(--hover)]">
                     <input
                       type="checkbox"
                       :value="r.model"
                       v-model="selectedModels" />
                   </td>
-                  <td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
                     <span
-                      class="model-badge"
+                      class="inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle"
                       :style="{background: colorFor(r.model)}"></span
                     >{{ r.model }}
                   </td>
-                  <td>{{ r.size && r.size !== '0' ? r.size : '—' }}</td>
-                  <td>{{ formatContext(r.context) }}</td>
-                  <td>{{ r.quant || '—' }}</td>
-                  <td>{{ r.tps.toFixed(1) }}</td>
-                  <td>{{ (r.ttft * 1000).toFixed(0) }}</td>
-                  <td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    {{ r.size && r.size !== '0' ? r.size : '—' }}
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    {{ formatContext(r.context) }}
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    {{ r.quant || '—' }}
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    {{ r.tps.toFixed(1) }}
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    {{ (r.ttft * 1000).toFixed(0) }}
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
                     <span
                       v-for="cap in r.capabilities.split(', ').filter(Boolean)"
                       :key="cap"
-                      class="capability-tag"
+                      class="inline-block text-xs py-0.5 px-1.5 rounded bg-[var(--cap-tag-bg)] text-[var(--cap-tag-text)] mr-1"
                       >{{ cap }}</span
                     >
                   </td>
@@ -706,7 +471,7 @@
               </tbody>
             </table>
           </div>
-          <p class="note">
+          <p class="text-[var(--note-text)] text-[13px] mt-1 pb-2 text-center">
             Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
           </p>
         </div>

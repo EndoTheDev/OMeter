@@ -12,9 +12,7 @@ All Python source code for the OMeter CLI tool. Six modules handling distinct co
 ## Local Contracts
 
 - No injection paths in production constructors — not even optional params for test injection. Tests mock at import boundary with `unittest.mock.patch`.
-- No re-exports at intermediate layers. Each package imports symbols directly from the owning module.
 - `model_name` everywhere (not `model_id`).
-- ProviderConfig has no `provider` field — class identity carries it.
 
 ## Work Guidance
 
