@@ -1930,7 +1930,7 @@ class TestBuildHistoryTable:
     def test_empty_list(self, capsys):
         build_history_table([], verbose=False)
         captured = capsys.readouterr()
-        assert "No history found" in captured.out
+        assert "No history found" in captured.err
 
     def test_summary_view(self, capsys):
         rows = [
@@ -1973,10 +1973,10 @@ class TestBuildHistoryTable:
         ]
         build_history_table(rows, verbose=False)
         captured = capsys.readouterr()
-        assert "llama3" in captured.out
-        assert "mistral" in captured.out
-        assert "2025-06-01" in captured.out  # latest for llama3
-        assert "2025-01-01" not in captured.out  # older run hidden
+        assert "llama3" in captured.err
+        assert "mistral" in captured.err
+        assert "2025-06-01" in captured.err  # latest for llama3
+        assert "2025-01-01" not in captured.err  # older run hidden
 
     def test_detailed_view(self, capsys):
         rows = [
@@ -1995,9 +1995,9 @@ class TestBuildHistoryTable:
         ]
         build_history_table(rows, verbose=True)
         captured = capsys.readouterr()
-        assert "2025-06-01" in captured.out
-        assert "8192" in captured.out
-        assert "local" in captured.out
+        assert "2025-06-01" in captured.err
+        assert "8192" in captured.err
+        assert "local" in captured.err
 
     def test_detailed_view_with_error(self, capsys):
         rows = [
@@ -2016,8 +2016,8 @@ class TestBuildHistoryTable:
         ]
         build_history_table(rows, verbose=True)
         captured = capsys.readouterr()
-        assert "timeout" in captured.out
-        assert "n/a" in captured.out
+        assert "timeout" in captured.err
+        assert "n/a" in captured.err
 
     def test_summary_view_with_empty_prompts(self, capsys):
         rows = [
@@ -2036,4 +2036,4 @@ class TestBuildHistoryTable:
         ]
         build_history_table(rows, verbose=False)
         captured = capsys.readouterr()
-        assert "?" in captured.out  # unknown number of runs
+        assert "?" in captured.err  # unknown number of runs

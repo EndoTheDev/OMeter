@@ -32,7 +32,7 @@ Benchmark and compare Ollama models across local and cloud endpoints. Provides a
 ## Update After Editing
 
 - Run `uv run pytest --cov` after any code change.
-- If the dashboard HTML changes, verify it loads locally with `python3 -m http.server 8080` in `docs/`.
+- If the dashboard HTML changes, verify it loads locally with `uv run python -m http.server 8080` in `docs/`.
 - If the workflow changes, verify the YAML is valid.
 - Update this AGENTS.md if project structure, conventions, or commands change.
 

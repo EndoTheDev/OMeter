@@ -18,7 +18,7 @@ from ometer.config import Config
 from ometer.export import ExportRow
 from ometer.history import trend_arrow, get_previous_run, get_connection
 
-console = Console()
+console = Console(stderr=True)
 
 
 SORT_FIELDS: dict[str, bool] = {

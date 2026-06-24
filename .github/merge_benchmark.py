@@ -16,8 +16,8 @@ with open(latest_path) as f:
         sys.exit(0)
     try:
         latest_results = json.loads(content)
-    except json.JSONDecodeError:
-        sys.exit(0)
+    except json.JSONDecodeError as e:
+        sys.exit(f"merge_benchmark: invalid JSON in {latest_path}: {e}")
 
 try:
     with open(history_path) as f:

@@ -7,7 +7,7 @@ Project documentation files and the GitHub Pages web dashboard. The dashboard is
 ## Ownership
 
 - **Owner:** EndoTheDev
-- **Published at:** https://EndoTheDev.github.io/OMeter/
+- **Published at:** <https://EndoTheDev.github.io/OMeter/>
 
 ## Local Contracts
 
