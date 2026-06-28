@@ -118,7 +118,7 @@ async def benchmark_chat_single_run(
     is_thinking = bool(show_data) and "thinking" in show_data.get("capabilities", [])
 
     start = time.perf_counter()
-    first_token_time: float = -1.0
+    first_token_time: float | None = None
     eval_count = 0
     eval_duration = 0
     total_duration = 0
@@ -145,12 +145,12 @@ async def benchmark_chat_single_run(
 
             msg = chunk.get("message") or {}
             if is_thinking:
-                if first_token_time < 0 and (
+                if first_token_time is None and (
                     msg.get("thinking") or msg.get("content")
                 ):
                     first_token_time = time.perf_counter() - start
             else:
-                if first_token_time < 0 and msg.get("content"):
+                if first_token_time is None and msg.get("content"):
                     first_token_time = time.perf_counter() - start
 
             if chunk.get("done"):
@@ -163,10 +163,7 @@ async def benchmark_chat_single_run(
     if not seen_done:
         raise StreamEndedError("Stream ended without completion")
 
-    if first_token_time >= 0:
-        ttft = first_token_time
-    else:
-        ttft = None
+    ttft = first_token_time
     duration = eval_duration or total_duration
     tps = eval_count / (duration / 1e9) if duration else None
 
