@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import functools
 import json
 import time
 from dataclasses import dataclass, field
@@ -32,6 +34,45 @@ def sort_by_modified(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(models, key=_key, reverse=True)
 
 
+class StreamEndedError(RuntimeError):
+    pass
+
+
+def retry(
+    status_codes: list[int] | None = None,
+    max_attempts: int = 4,
+    return_error_dict: bool = False,
+):
+    codes = status_codes if status_codes is not None else [429, 500, 502, 503, 504]
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    should_retry = False
+                    if isinstance(e, httpx.HTTPStatusError):
+                        if e.response.status_code in codes:
+                            should_retry = True
+                    elif isinstance(e, (httpx.RequestError, StreamEndedError)):
+                        should_retry = True
+
+                    if should_retry and attempt < max_attempts:
+                        await asyncio.sleep(2 ** (attempt - 1))
+                        continue
+
+                    if return_error_dict:
+                        return {"ttft": None, "tps": None, "error": str(e)}
+                    raise
+
+        return wrapper
+
+    return decorator
+
+
+@retry()
 async def fetch_tags(client: httpx.AsyncClient, base_url: str) -> list[dict[str, Any]]:
     resp = await client.get(f"{base_url}/api/tags")
     resp.raise_for_status()
@@ -39,6 +80,7 @@ async def fetch_tags(client: httpx.AsyncClient, base_url: str) -> list[dict[str,
     return data.get("models", [])
 
 
+@retry()
 async def fetch_model_show(
     client: httpx.AsyncClient, base_url: str, model_name: str
 ) -> dict[str, Any]:
@@ -55,6 +97,7 @@ def is_embedding_model(show_data: dict[str, Any]) -> bool:
     return "embedding" in show_data.get("capabilities", [])
 
 
+@retry(return_error_dict=True)
 async def benchmark_chat_single_run(
     client: httpx.AsyncClient,
     base_url: str,
@@ -72,69 +115,62 @@ async def benchmark_chat_single_run(
     if num_predict is not None:
         payload["options"] = {"num_predict": num_predict}
 
+    is_thinking = bool(show_data) and "thinking" in show_data.get("capabilities", [])
+
     start = time.perf_counter()
-    first_token_time: float = -1.0
+    first_token_time: float | None = None
     eval_count = 0
     eval_duration = 0
     total_duration = 0
-    error: str | None = None
     seen_done = False
 
-    is_thinking = bool(show_data) and "thinking" in show_data.get("capabilities", [])
+    async with client.stream(
+        "POST",
+        f"{base_url}/api/chat",
+        json=payload,
+        headers=headers,
+        timeout=300.0,
+    ) as response:
+        response.raise_for_status()
+        async for line in response.aiter_lines():
+            if not line.strip():
+                continue
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-    try:
-        async with client.stream(
-            "POST",
-            f"{base_url}/api/chat",
-            json=payload,
-            headers=headers,
-            timeout=300.0,
-        ) as response:
-            response.raise_for_status()
-            async for line in response.aiter_lines():
-                if not line.strip():
-                    continue
-                try:
-                    chunk = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+            if chunk.get("error"):
+                raise RuntimeError(chunk["error"])
 
-                if chunk.get("error"):
-                    error = chunk["error"]
-                    break
+            msg = chunk.get("message") or {}
+            if is_thinking:
+                if first_token_time is None and (
+                    msg.get("thinking") or msg.get("content")
+                ):
+                    first_token_time = time.perf_counter() - start
+            else:
+                if first_token_time is None and msg.get("content"):
+                    first_token_time = time.perf_counter() - start
 
-                msg = chunk.get("message") or {}
-                if is_thinking:
-                    if first_token_time < 0 and (
-                        msg.get("thinking") or msg.get("content")
-                    ):
-                        first_token_time = time.perf_counter() - start
-                else:
-                    if first_token_time < 0 and msg.get("content"):
-                        first_token_time = time.perf_counter() - start
+            if chunk.get("done"):
+                eval_count = chunk.get("eval_count", 0)
+                eval_duration = chunk.get("eval_duration", 0)
+                total_duration = chunk.get("total_duration", 0)
+                seen_done = True
+                break
 
-                if chunk.get("done"):
-                    eval_count = chunk.get("eval_count", 0)
-                    eval_duration = chunk.get("eval_duration", 0)
-                    total_duration = chunk.get("total_duration", 0)
-                    seen_done = True
-                    break
-    except Exception as e:
-        error = str(e)
+    if not seen_done:
+        raise StreamEndedError("Stream ended without completion")
 
-    if not seen_done and not error:
-        error = "Stream ended without completion"
-
-    if first_token_time >= 0:
-        ttft = first_token_time
-    else:
-        ttft = None
+    ttft = first_token_time
     duration = eval_duration or total_duration
     tps = eval_count / (duration / 1e9) if duration else None
 
-    return {"ttft": ttft, "tps": tps, "error": error}
+    return {"ttft": ttft, "tps": tps, "error": None}
 
 
+@retry(return_error_dict=True)
 async def benchmark_embed_single_run(
     client: httpx.AsyncClient,
     base_url: str,
@@ -148,28 +184,21 @@ async def benchmark_embed_single_run(
     }
 
     start = time.perf_counter()
-    prompt_eval_count = 0
-    total_duration = 0
-    error: str | None = None
-
-    try:
-        resp = await client.post(
-            f"{base_url}/api/embed",
-            json=payload,
-            headers=headers,
-            timeout=300.0,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        prompt_eval_count = data.get("prompt_eval_count", 0)
-        total_duration = data.get("total_duration", 0)
-    except Exception as e:
-        error = str(e)
+    resp = await client.post(
+        f"{base_url}/api/embed",
+        json=payload,
+        headers=headers,
+        timeout=300.0,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    prompt_eval_count = data.get("prompt_eval_count", 0)
+    total_duration = data.get("total_duration", 0)
 
     ttft = time.perf_counter() - start
     tps = prompt_eval_count / (total_duration / 1e9) if total_duration else None
 
-    return {"ttft": ttft, "tps": tps, "error": error}
+    return {"ttft": ttft, "tps": tps, "error": None}
 
 
 async def benchmark_model(
