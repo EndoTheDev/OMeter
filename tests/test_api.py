@@ -20,6 +20,13 @@ from ometer.api import (
 from ometer.config import Config
 
 
+@pytest.fixture(autouse=True)
+def mock_sleep(monkeypatch):
+    async def dummy_sleep(*args, **kwargs):
+        pass
+    monkeypatch.setattr("asyncio.sleep", dummy_sleep)
+
+
 class TestSortByModified:
     def test_sorts_newest_first(self):
         models = [
@@ -87,6 +94,56 @@ class TestFetchTags:
             result = await fetch_tags(client, "http://localhost:11434")
         assert result == []
 
+    @pytest.mark.asyncio
+    async def test_fetch_tags_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/tags",
+            status_code=500,
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/tags",
+            json={"models": [{"name": "llama3"}]},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await fetch_tags(client, "http://localhost:11434")
+        assert result == [{"name": "llama3"}]
+
+    @pytest.mark.asyncio
+    async def test_fetch_tags_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/tags",
+                status_code=500,
+            )
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.HTTPStatusError):
+                await fetch_tags(client, "http://localhost:11434")
+
+    @pytest.mark.asyncio
+    async def test_fetch_tags_network_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection failed"),
+            url="http://localhost:11434/api/tags",
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/tags",
+            json={"models": [{"name": "llama3"}]},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await fetch_tags(client, "http://localhost:11434")
+        assert result == [{"name": "llama3"}]
+
+    @pytest.mark.asyncio
+    async def test_fetch_tags_network_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_exception(
+                httpx.ConnectError("Connection failed"),
+                url="http://localhost:11434/api/tags",
+            )
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.ConnectError):
+                await fetch_tags(client, "http://localhost:11434")
+
 
 class TestFetchModelShow:
     @pytest.mark.asyncio
@@ -102,6 +159,56 @@ class TestFetchModelShow:
         async with httpx.AsyncClient() as client:
             result = await fetch_model_show(client, "http://localhost:11434", "llama3")
         assert result == show_data
+
+    @pytest.mark.asyncio
+    async def test_fetch_model_show_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/show",
+            status_code=500,
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/show",
+            json={"details": {"parameter_size": "7B"}},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await fetch_model_show(client, "http://localhost:11434", "llama3")
+        assert result == {"details": {"parameter_size": "7B"}}
+
+    @pytest.mark.asyncio
+    async def test_fetch_model_show_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/show",
+                status_code=500,
+            )
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.HTTPStatusError):
+                await fetch_model_show(client, "http://localhost:11434", "llama3")
+
+    @pytest.mark.asyncio
+    async def test_fetch_model_show_network_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection failed"),
+            url="http://localhost:11434/api/show",
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/show",
+            json={"details": {"parameter_size": "7B"}},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await fetch_model_show(client, "http://localhost:11434", "llama3")
+        assert result == {"details": {"parameter_size": "7B"}}
+
+    @pytest.mark.asyncio
+    async def test_fetch_model_show_network_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_exception(
+                httpx.ConnectError("Connection failed"),
+                url="http://localhost:11434/api/show",
+            )
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.ConnectError):
+                await fetch_model_show(client, "http://localhost:11434", "llama3")
 
 
 class TestBenchmarkChatSingleRun:
@@ -187,15 +294,98 @@ class TestBenchmarkChatSingleRun:
             json.dumps({"message": {"content": "Hello"}, "done": False}),
         ]
         body = "\n".join(chunks)
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/chat",
-            content=body.encode(),
-        )
+        for _ in range(4):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/chat",
+                content=body.encode(),
+            )
         async with httpx.AsyncClient() as client:
             result = await benchmark_chat_single_run(
                 client, "http://localhost:11434", "llama3", "hi"
             )
         assert result["error"] == "Stream ended without completion"
+
+    @pytest.mark.asyncio
+    async def test_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/chat",
+            status_code=500,
+        )
+        chunks = [
+            json.dumps(
+                {
+                    "message": {"content": "resolved"},
+                    "done": True,
+                    "eval_count": 5,
+                    "eval_duration": 500_000_000,
+                    "total_duration": 1_000_000_000,
+                }
+            ),
+        ]
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/chat",
+            content="\n".join(chunks).encode(),
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_chat_single_run(
+                client, "http://localhost:11434", "llama3", "hi"
+            )
+        assert result["error"] is None
+        assert result["tps"] == 10.0
+
+    @pytest.mark.asyncio
+    async def test_network_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection failed"),
+            url="http://localhost:11434/api/chat",
+        )
+        chunks = [
+            json.dumps(
+                {
+                    "message": {"content": "resolved"},
+                    "done": True,
+                    "eval_count": 5,
+                    "eval_duration": 500_000_000,
+                    "total_duration": 1_000_000_000,
+                }
+            ),
+        ]
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/chat",
+            content="\n".join(chunks).encode(),
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_chat_single_run(
+                client, "http://localhost:11434", "llama3", "hi"
+            )
+        assert result["error"] is None
+        assert result["tps"] == 10.0
+
+    @pytest.mark.asyncio
+    async def test_network_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_exception(
+                httpx.ConnectError("Connection failed"),
+                url="http://localhost:11434/api/chat",
+            )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_chat_single_run(
+                client, "http://localhost:11434", "llama3", "hi"
+            )
+        assert result["error"] is not None
+        assert "Connection failed" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            ValueError("Unexpected exception"),
+            url="http://localhost:11434/api/chat",
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_chat_single_run(
+                client, "http://localhost:11434", "llama3", "hi"
+            )
+        assert result["error"] == "Unexpected exception"
 
     @pytest.mark.asyncio
     async def test_thinking_model_first_token(self, httpx_mock: pytest_httpx.HTTPXMock):
@@ -295,15 +485,76 @@ class TestBenchmarkEmbedSingleRun:
 
     @pytest.mark.asyncio
     async def test_http_error(self, httpx_mock: pytest_httpx.HTTPXMock):
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/embed",
-            status_code=500,
-        )
+        for _ in range(4):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/embed",
+                status_code=500,
+            )
         async with httpx.AsyncClient() as client:
             result = await benchmark_embed_single_run(
                 client, "http://localhost:11434", "nomic", "hello"
             )
         assert result["error"] is not None
+
+    @pytest.mark.asyncio
+    async def test_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/embed",
+            status_code=500,
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/embed",
+            json={"prompt_eval_count": 8, "total_duration": 500_000_000},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_embed_single_run(
+                client, "http://localhost:11434", "nomic", "hello"
+            )
+        assert result["error"] is None
+        assert result["tps"] == 16.0
+
+    @pytest.mark.asyncio
+    async def test_network_retry_success(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            httpx.ConnectError("Connection failed"),
+            url="http://localhost:11434/api/embed",
+        )
+        httpx_mock.add_response(
+            url="http://localhost:11434/api/embed",
+            json={"prompt_eval_count": 8, "total_duration": 500_000_000},
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_embed_single_run(
+                client, "http://localhost:11434", "nomic", "hello"
+            )
+        assert result["error"] is None
+        assert result["tps"] == 16.0
+
+    @pytest.mark.asyncio
+    async def test_network_exhausted_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
+        for _ in range(4):
+            httpx_mock.add_exception(
+                httpx.ConnectError("Connection failed"),
+                url="http://localhost:11434/api/embed",
+            )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_embed_single_run(
+                client, "http://localhost:11434", "nomic", "hello"
+            )
+        assert result["error"] is not None
+        assert "Connection failed" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception(self, httpx_mock: pytest_httpx.HTTPXMock):
+        httpx_mock.add_exception(
+            ValueError("Unexpected exception"),
+            url="http://localhost:11434/api/embed",
+        )
+        async with httpx.AsyncClient() as client:
+            result = await benchmark_embed_single_run(
+                client, "http://localhost:11434", "nomic", "hello"
+            )
+        assert result["error"] == "Unexpected exception"
 
 
 class TestBenchmarkModel:
@@ -356,18 +607,11 @@ class TestBenchmarkModel:
 
     @pytest.mark.asyncio
     async def test_all_runs_fail(self, httpx_mock: pytest_httpx.HTTPXMock):
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/chat",
-            status_code=500,
-        )
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/chat",
-            status_code=500,
-        )
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/chat",
-            status_code=500,
-        )
+        for _ in range(12):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/chat",
+                status_code=500,
+            )
         cfg = Config("http://localhost:11434", "https://ollama.com", "", 3, 1)
         show_data = {"capabilities": ["completion"]}
         async with httpx.AsyncClient() as client:
@@ -394,10 +638,11 @@ class TestBenchmarkModel:
                 url="http://localhost:11434/api/chat",
                 content="\n".join(chunks).encode(),
             )
-        httpx_mock.add_response(
-            url="http://localhost:11434/api/chat",
-            status_code=500,
-        )
+        for _ in range(4):
+            httpx_mock.add_response(
+                url="http://localhost:11434/api/chat",
+                status_code=500,
+            )
         cfg = Config("http://localhost:11434", "https://ollama.com", "", 3, 1)
         show_data = {"capabilities": ["completion"]}
         async with httpx.AsyncClient() as client:
