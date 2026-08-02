@@ -20,6 +20,7 @@
         --heading: #cdd6f4;
         --hover: #313244;
         --accent: #89b4fa;
+        --degraded: #f9e2af;
         --input-bg: #181825;
         --chip-active-bg: #89b4fa;
         --chip-active-border: #89b4fa;
@@ -41,6 +42,7 @@
           --heading: #4c4f69;
           --hover: #ccd0da;
           --accent: #1e66f5;
+          --degraded: #df8e1d;
           --input-bg: #e6e9ef;
           --chip-active-bg: #1e66f5;
           --chip-active-border: #1e66f5;
@@ -67,33 +69,18 @@
       ::-webkit-scrollbar-thumb:hover {
         background: var(--muted);
       }
-      .sidebar-scroll::-webkit-scrollbar {
-        width: 6px;
-      }
-      .sidebar-scroll::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .sidebar-scroll::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 3px;
-      }
-      .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-        background: var(--muted);
-      }
     </style>
   </head>
   <body class="bg-[var(--bg)] text-[var(--text)] font-sans text-sm m-0">
     <div
       id="app"
-      class="flex flex-col min-h-screen md:flex-row">
-      <aside
-        class="sidebar-scroll bg-[var(--panel)] border-b border-[var(--border)] p-4 md:w-72 md:flex-shrink-0 md:sticky md:top-0 md:h-screen md:border-r md:border-b-0 md:overflow-y-auto md:overscroll-contain">
-        <h1 class="text-[28px] mb-1 text-[var(--heading)]">OMeter</h1>
-        <p class="text-[var(--muted)] text-sm mb-0.5">
-          Ollama Cloud benchmarks
-        </p>
-        <p class="text-[var(--muted)] text-xs mb-4 italic">
-          made for you with vibes by:<br />
+      class="flex flex-col h-screen">
+      <header
+        class="sticky top-0 z-10 bg-[var(--panel)] border-b border-[var(--border)] px-4 py-2 md:px-6 flex items-center gap-3 flex-wrap">
+        <h1 class="text-lg leading-none text-[var(--heading)]">OMeter</h1>
+        <p class="text-[var(--muted)] text-[13px]">Ollama Cloud benchmarks</p>
+        <p class="ml-auto text-[var(--muted)] text-xs italic whitespace-nowrap">
+          made for you with vibes by:
           <a
             href="https://github.com/EndoTheDev"
             target="_blank"
@@ -125,122 +112,10 @@
             >Ollama</a
           >
         </p>
-
-        <div class="mb-4">
-          <button
-            class="w-full flex items-center justify-between bg-transparent border-none text-[var(--muted)] p-0 cursor-pointer text-sm font-bold uppercase tracking-wide hover:text-[var(--text)]"
-            @click="advancedOpen = !advancedOpen">
-            Advanced filters
-            <span
-              class="transition-transform duration-200 text-xs"
-              :class="{'rotate-90': advancedOpen}"
-              >▶</span
-            >
-          </button>
-          <div v-show="advancedOpen">
-            <div class="mb-4">
-              <h2
-                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
-                Date range
-              </h2>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">From</label
-                ><input
-                  type="date"
-                  v-model="dateFrom"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">To</label>
-                <input
-                  type="date"
-                  v-model="dateTo"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h2
-                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
-                Capabilities
-              </h2>
-              <div class="flex flex-wrap gap-1">
-                <label
-                  v-for="c in capabilities"
-                  :key="c"
-                  class="flex items-center gap-1 text-[13px] cursor-pointer py-1 px-[5px] rounded-xl border border-[var(--border)] bg-[var(--input-bg)]"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': selectedCapabilities.includes(c)}">
-                  <input
-                    type="checkbox"
-                    :value="c"
-                    v-model="selectedCapabilities"
-                    class="hidden" />{{ c }}
-                </label>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h2
-                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
-                Context window
-              </h2>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">Min</label
-                ><input
-                  type="number"
-                  v-model.number="minContext"
-                  placeholder="0"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">Max</label>
-                <input
-                  type="number"
-                  v-model.number="maxContext"
-                  placeholder="∞"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h2
-                class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
-                Parameters
-              </h2>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">Min</label
-                ><input
-                  type="number"
-                  v-model.number="minParams"
-                  placeholder="0"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-              <div class="flex items-center gap-2 mb-3">
-                <label class="text-[13px] text-[var(--muted)] w-10">Max</label>
-                <input
-                  type="number"
-                  v-model.number="maxParams"
-                  placeholder="∞"
-                  class="bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] py-1 px-2 rounded-md text-[13px] flex-1" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <h2 class="text-sm text-[var(--muted)] mb-3 uppercase tracking-wide">
-            Search models
-          </h2>
-          <input
-            type="text"
-            v-model="searchText"
-            placeholder="e.g. qwen"
-            class="w-full py-1.5 px-2.5 text-[13px] rounded-md bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)]" />
-        </div>
-      </aside>
+      </header>
 
       <main
-        class="flex-1 p-4 pb-0 min-w-0 min-h-0 flex flex-col md:p-6 md:pb-0 md:h-screen md:overflow-y-auto">
+        class="flex-1 p-4 pt-2 pb-0 min-w-0 min-h-0 flex flex-col overflow-hidden">
         <div
           v-if="filteredSnapshots.length === 0"
           class="text-center p-12 text-[var(--muted)]">
@@ -258,26 +133,20 @@
         </div>
 
         <div
-          class="flex flex-col gap-4 mb-4 md:flex-row"
+          class="flex flex-col gap-4 mb-2 md:flex-row"
           v-if="filteredSnapshots.length >= 2">
           <div
             class="bg-[var(--panel)] border border-[var(--border)] rounded-lg p-3 h-[260px] flex flex-col md:flex-1 md:min-w-0 md:h-[420px]">
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
               <h2 class="text-base m-0 text-[var(--heading)]">
                 Tokens per Second (higher is better)
               </h2>
               <div class="flex gap-1">
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === 'all'}"
-                  @click="setTimePreset('all')">
-                  all
-                </button>
-                <button
-                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
-                  @click="setTimePreset('30')">
-                  30d
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
+                  @click="setTimePreset('1')">
+                  1d
                 </button>
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
@@ -287,9 +156,21 @@
                 </button>
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
-                  @click="setTimePreset('1')">
-                  1d
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '14'}"
+                  @click="setTimePreset('14')">
+                  14d
+                </button>
+                <button
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
+                <button
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': tpsLogY}"
+                  @click="tpsLogY = !tpsLogY">
+                  {{ tpsLogY ? 'log' : 'lin' }}
                 </button>
               </div>
             </div>
@@ -300,22 +181,16 @@
 
           <div
             class="bg-[var(--panel)] border border-[var(--border)] rounded-lg p-3 h-[260px] flex flex-col md:flex-1 md:min-w-0 md:h-[420px]">
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
               <h2 class="text-base m-0 text-[var(--heading)]">
                 Time to First Token (lower is better)
               </h2>
               <div class="flex gap-1">
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === 'all'}"
-                  @click="setTimePreset('all')">
-                  all
-                </button>
-                <button
-                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
-                  @click="setTimePreset('30')">
-                  30d
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
+                  @click="setTimePreset('1')">
+                  1d
                 </button>
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
@@ -325,9 +200,21 @@
                 </button>
                 <button
                   class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
-                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '1'}"
-                  @click="setTimePreset('1')">
-                  1d
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '14'}"
+                  @click="setTimePreset('14')">
+                  14d
+                </button>
+                <button
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': timePreset === '30'}"
+                  @click="setTimePreset('30')">
+                  30d
+                </button>
+                <button
+                  class="text-[11px] py-0.5 px-2 rounded border border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] cursor-pointer leading-tight"
+                  :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': ttftLogY}"
+                  @click="ttftLogY = !ttftLogY">
+                  {{ ttftLogY ? 'log' : 'lin' }}
                 </button>
               </div>
             </div>
@@ -340,6 +227,76 @@
         <div
           v-if="filteredSnapshots.length > 0"
           class="flex-1 min-h-0 flex flex-col">
+          <div class="flex flex-wrap gap-2 mb-2 items-center">
+            <span
+              v-for="s in ['healthy','jittery','degraded','down','nodata']"
+              :key="s"
+              class="inline-flex items-center gap-1.5 text-[13px] py-0.5 px-2.5 rounded-full border border-[var(--border)] bg-[var(--input-bg)]"
+              :style="{color: statusColor[s]}">
+              <span
+                class="inline-block w-2 h-2 rounded-full"
+                :style="{background: statusColor[s]}"></span>
+              {{ statusLabel[s] }} · {{ statusCounts[s] }}
+            </span>
+            <label
+              v-for="c in capabilities"
+              :key="c"
+              class="flex items-center gap-1 text-[13px] cursor-pointer py-1 px-[5px] rounded-xl border border-[var(--border)] bg-[var(--input-bg)]"
+              :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': selectedCapabilities.includes(c)}">
+              <input
+                type="checkbox"
+                :value="c"
+                v-model="selectedCapabilities"
+                class="hidden" />{{ c }}
+            </label>
+            <div class="relative ml-auto">
+              <input
+                type="text"
+                v-model="searchText"
+                :placeholder="'Filter ' + totalLatestModels + ' models'"
+                class="py-1 pl-2.5 pr-7 text-[13px] rounded-md bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] w-40 md:w-48" />
+              <svg
+                v-if="!searchText"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)] pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24">
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="7"></circle>
+                <line
+                  x1="21"
+                  y1="21"
+                  x2="16.65"
+                  y2="16.65"></line>
+              </svg>
+              <button
+                v-else
+                @click="searchText = ''"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-0 border-none bg-transparent cursor-pointer text-[var(--muted)] hover:text-[var(--text)]"
+                aria-label="Clear search">
+                <svg
+                  class="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24">
+                  <line
+                    x1="18"
+                    y1="6"
+                    x2="6"
+                    y2="18"></line>
+                  <line
+                    x1="6"
+                    y1="6"
+                    x2="18"
+                    y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
           <div
             class="overflow-auto flex-1 min-h-0 border border-[var(--border)] rounded-lg">
             <table class="w-full border-collapse bg-[var(--panel)] text-sm">
@@ -360,6 +317,10 @@
                       v-if="sortBy==='model'"
                       >{{ sortDir > 0 ? '▲' : '▼' }}</span
                     >
+                  </th>
+                  <th
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap bg-[var(--hover)] text-[var(--muted)] font-semibold">
+                    Status
                   </th>
                   <th
                     @click="sortBy='size';sortDir*=-1"
@@ -440,6 +401,17 @@
                   </td>
                   <td
                     class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
+                    <span
+                      class="inline-flex items-center gap-1.5"
+                      :style="{color: statusColor[windowStats[r.model]?.status]}">
+                      <span
+                        class="inline-block w-2 h-2 rounded-full"
+                        :style="{background: statusColor[windowStats[r.model]?.status]}"></span>
+                      {{ statusLabel[windowStats[r.model]?.status] }}
+                    </span>
+                  </td>
+                  <td
+                    class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
                     {{ r.size && r.size !== '0' ? r.size : '—' }}
                   </td>
                   <td
@@ -453,10 +425,22 @@
                   <td
                     class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
                     {{ r.tps != null ? r.tps.toFixed(1) : '—' }}
+                    <span
+                      class="ml-1 text-[var(--muted)]"
+                      :title="windowStats[r.model]?.changeTps != null ? 'window change ' + windowStats[r.model].changeTps.toFixed(1) + '%' : ''"
+                      >{{ trendArrow(windowStats[r.model]?.changeTps, true)
+                      }}</span
+                    >
                   </td>
                   <td
                     class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
                     {{ r.ttft != null ? (r.ttft * 1000).toFixed(0) : '—' }}
+                    <span
+                      class="ml-1 text-[var(--muted)]"
+                      :title="windowStats[r.model]?.changeTtft != null ? 'window change ' + windowStats[r.model].changeTtft.toFixed(1) + '%' : ''"
+                      >{{ trendArrow(windowStats[r.model]?.changeTtft, false)
+                      }}</span
+                    >
                   </td>
                   <td
                     class="py-2 px-3 text-left border-b border-[var(--border)] whitespace-nowrap group-hover:bg-[var(--hover)]">
@@ -471,8 +455,25 @@
               </tbody>
             </table>
           </div>
-          <p class="text-[var(--note-text)] text-[13px] mt-1 pb-2 text-center">
-            Showing {{ sortedLatest.length }} of {{ totalLatestModels }} models.
+          <p
+            class="text-[var(--note-text)] text-[13px] mt-1 pb-2 text-center"
+            :class="feedStale ? 'text-[var(--degraded)]' : ''">
+            <span
+              v-if="feedStale"
+              class="inline-flex items-center gap-1.5 py-0.5 px-2 rounded-full border border-[var(--degraded)] text-[var(--degraded)] font-semibold mr-2"
+              style="
+                background: color-mix(
+                  in srgb,
+                  var(--degraded) 18%,
+                  transparent
+                );
+              ">
+              ● Feed stale
+            </span>
+            <template v-if="lastRunTime">
+              Last run {{ relativeTime(lastRunTime) }} ({{
+              lastRunTime.toLocaleString() }})
+            </template>
           </p>
         </div>
       </main>
@@ -519,22 +520,20 @@
           const rawData = ref([]);
           const selectedModels = ref([]);
           const selectedCapabilities = ref([]);
-          const minContext = ref(null);
-          const maxContext = ref(null);
-          const minParams = ref(null);
-          const maxParams = ref(null);
           const searchText = ref("");
           const dateFrom = ref("");
           const dateTo = ref("");
-          const timePreset = ref("all");
+          const timePreset = ref("1");
           const sortBy = ref("tps");
           const sortDir = ref(-1);
           const tpsChart = ref(null);
           const ttftChart = ref(null);
-          const advancedOpen = ref(true);
+          const tpsLogY = ref(false);
+          const ttftLogY = ref(true);
           const hoveredModel = ref(null);
           let tpsChartInstance = null;
           let ttftChartInstance = null;
+          const now = ref(Date.now());
 
           const models = computed(() => {
             const last = rawData.value[rawData.value.length - 1];
@@ -551,24 +550,6 @@
                 return (
                   r && capSet.every((c) => (r.capabilities || "").includes(c))
                 );
-              });
-            }
-            if (minContext.value || maxContext.value) {
-              items = items.filter((m) => {
-                const r = (last.models || []).find((x) => x.model === m);
-                const ctx = parseInt(r?.context || "0", 10);
-                if (minContext.value && ctx < minContext.value) return false;
-                if (maxContext.value && ctx > maxContext.value) return false;
-                return true;
-              });
-            }
-            if (minParams.value || maxParams.value) {
-              items = items.filter((m) => {
-                const r = (last.models || []).find((x) => x.model === m);
-                const params = normalizeSize(r?.size);
-                if (minParams.value && params < minParams.value) return false;
-                if (maxParams.value && params > maxParams.value) return false;
-                return true;
               });
             }
             return items;
@@ -622,28 +603,6 @@
                 ),
               );
             }
-            if (minContext.value) {
-              const ctx = parseInt(minContext.value, 10);
-              items = items.filter(
-                (r) => parseInt(r.context || "0", 10) >= ctx,
-              );
-            }
-            if (maxContext.value) {
-              const ctx = parseInt(maxContext.value, 10);
-              items = items.filter(
-                (r) => parseInt(r.context || "0", 10) <= ctx,
-              );
-            }
-            if (minParams.value) {
-              items = items.filter(
-                (r) => normalizeSize(r.size) >= minParams.value,
-              );
-            }
-            if (maxParams.value) {
-              items = items.filter(
-                (r) => normalizeSize(r.size) <= maxParams.value,
-              );
-            }
             return items;
           });
 
@@ -664,6 +623,135 @@
             });
             return items;
           });
+
+          // Shared backbone for trend arrows and health status: per model,
+          // the latest value vs the window baseline. Arrows use the oldest
+          // value in the window; status compares latest to the window median
+          // (median is robust to a single flaky run).
+          const windowStats = computed(() => {
+            const snaps = filteredSnapshots.value;
+            const stats = {};
+            if (!snaps.length) return stats;
+            const latestSnap = snaps[snaps.length - 1];
+            const latestModels = latestSnap.models || [];
+            for (const m of models.value) {
+              const vals = { tps: [], ttft: [] };
+              let oldestTps = null;
+              let oldestTtft = null;
+              for (const s of snaps) {
+                const r = (s.models || []).find((x) => x.model === m);
+                if (!r) continue;
+                if (r.tps != null) {
+                  if (oldestTps === null) oldestTps = r.tps;
+                  vals.tps.push(r.tps);
+                }
+                if (r.ttft != null) {
+                  if (oldestTtft === null) oldestTtft = r.ttft;
+                  vals.ttft.push(r.ttft);
+                }
+              }
+              const latest = latestModels.find((r) => r.model === m);
+              const medTps = median(vals.tps);
+              const medTtft = median(vals.ttft);
+              const changeTps = pctChange(latest?.tps, oldestTps);
+              const changeTtft = pctChange(latest?.ttft, oldestTtft);
+              // Jitter check: is the latest point an outlier vs its own
+              // window median (3x MAD)? Tuned on real data (K=2.5).
+              const madTps = mad(vals.tps, medTps);
+              const madTtft = mad(vals.ttft, medTtft);
+              const isJittery =
+                (latest?.tps != null &&
+                  medTps != null &&
+                  madTps &&
+                  Math.abs(latest.tps - medTps) > 2.5 * 1.4826 * madTps) ||
+                (latest?.ttft != null &&
+                  medTtft != null &&
+                  madTtft &&
+                  Math.abs(latest.ttft - medTtft) > 2.5 * 1.4826 * madTtft);
+              let status;
+              if (!latest) {
+                status = "down";
+              } else if (latest.tps == null && latest.ttft == null) {
+                status = "nodata";
+              } else {
+                const cTps =
+                  latest.tps != null && medTps ?
+                    pctChange(latest.tps, medTps)
+                  : 0;
+                const cTtft =
+                  latest.ttft != null && medTtft ?
+                    pctChange(latest.ttft, medTtft)
+                  : 0;
+                if (cTps <= -10 || cTtft >= 10) {
+                  status = "degraded";
+                } else if (isJittery) {
+                  status = "jittery";
+                } else {
+                  status = "healthy";
+                }
+              }
+              stats[m] = {
+                changeTps,
+                changeTtft,
+                status,
+              };
+            }
+            return stats;
+          });
+
+          const statusColor = {
+            healthy: "#a6e3a1",
+            jittery: "#89b4fa",
+            degraded: "#f9e2af",
+            down: "#f38ba8",
+            nodata: "#6c7086",
+          };
+          const statusLabel = {
+            healthy: "Healthy",
+            jittery: "Jittery",
+            degraded: "Degraded",
+            down: "Down",
+            nodata: "No data",
+          };
+
+          const statusCounts = computed(() => {
+            const c = {
+              healthy: 0,
+              jittery: 0,
+              degraded: 0,
+              down: 0,
+              nodata: 0,
+            };
+            for (const m of models.value) {
+              const st = windowStats.value[m]?.status;
+              if (st && c[st] != null) c[st]++;
+            }
+            return c;
+          });
+
+          // Freshness: when did the newest benchmark run actually land?
+          const lastRunTime = computed(() => {
+            const snaps = rawData.value;
+            if (!snaps.length) return null;
+            return new Date(snaps[snaps.length - 1].timestamp);
+          });
+
+          const feedStale = computed(() => {
+            const last = lastRunTime.value;
+            if (!last) return false;
+            // Stale if no run has landed for >4h (benchmarks run ~hourly).
+            return now.value - last.getTime() > 4 * 3600 * 1000;
+          });
+
+          function relativeTime(date) {
+            if (!date) return "";
+            const diffMs = now.value - date.getTime();
+            const mins = Math.round(diffMs / 60000);
+            if (mins < 60) return mins <= 1 ? "just now" : `${mins}m ago`;
+            const hrs = Math.round(mins / 60);
+            if (hrs < 24) return `${hrs}h ago`;
+            return `${Math.round(hrs / 24)}d ago`;
+          }
 
           const allSelected = computed(() => {
             const names = sortedLatest.value.map((r) => r.model);
@@ -708,6 +796,35 @@
             return n;
           }
 
+          function median(values) {
+            const v = values
+              .filter((x) => x != null && !isNaN(x))
+              .sort((a, b) => a - b);
+            if (!v.length) return null;
+            const mid = Math.floor(v.length / 2);
+            return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+          }
+
+          function mad(values, med) {
+            const v = values.filter((x) => x != null && !isNaN(x));
+            if (!v.length) return null;
+            const devs = v.map((x) => Math.abs(x - med));
+            return median(devs);
+          }
+
+          function pctChange(latest, baseline) {
+            if (latest == null || baseline == null || baseline === 0)
+              return null;
+            return ((latest - baseline) / baseline) * 100;
+          }
+
+          function trendArrow(change, higherIsBetter) {
+            if (change == null) return "";
+            if (Math.abs(change) <= 5) return "→";
+            const improving = higherIsBetter ? change > 0 : change < 0;
+            return improving ? "↑" : "↓";
+          }
+
           function formatContext(value) {
             const n = parseInt(value || "0", 10);
             if (!n) return "—";
@@ -718,20 +835,14 @@
 
           function setTimePreset(preset) {
             timePreset.value = preset;
-            if (preset === "all") {
-              dateFrom.value = "";
-              dateTo.value = "";
-            } else {
-              const d = new Date();
-              d.setDate(d.getDate() - parseInt(preset));
-              dateFrom.value = d.toISOString().slice(0, 10);
-              dateTo.value = "";
-            }
+            const d = new Date();
+            d.setDate(d.getDate() - parseInt(preset));
+            dateFrom.value = d.toISOString().slice(0, 10);
+            dateTo.value = "";
           }
 
           function bucketFor(ts, preset, anchor) {
             const d = new Date(ts);
-            if (preset === "all") return d.getTime();
             const presetNum = parseInt(preset);
             const diffMs = anchor.getTime() - d.getTime();
             if (presetNum === 1) {
@@ -741,15 +852,29 @@
           }
 
           function buildTimeGrid(snaps) {
-            if (timePreset.value === "all" || snaps.length === 0) return null;
+            if (snaps.length === 0) return null;
             const latest = new Date(snaps[snaps.length - 1].timestamp);
             const presetNum = parseInt(timePreset.value);
             const slots = [];
             if (presetNum === 1) {
-              for (let i = 23; i >= 0; i--) {
-                const t = new Date(latest.getTime() - i * 3600000);
+              // 1d: cadence is ~hourly but not fixed, so build the grid from
+              // the hour-buckets actually present in the window instead of
+              // assuming 24 contiguous hours (which invents empty slots that
+              // break every line under spanGaps:false).
+              const keys = new Set();
+              for (const s of snaps) {
+                keys.add(
+                  Math.floor(
+                    (latest.getTime() - new Date(s.timestamp).getTime()) /
+                      3600000,
+                  ),
+                );
+              }
+              const sorted = [...keys].sort((a, b) => a - b);
+              for (const k of sorted) {
+                const t = new Date(latest.getTime() - k * 3600000);
                 slots.push({
-                  key: i,
+                  key: k,
                   label: t.toLocaleTimeString([], {
                     hour: "numeric",
                     hour12: true,
@@ -869,7 +994,7 @@
               data: dataForModel(model),
               ...datasetStyle(model),
               tension: 0.1,
-              spanGaps: true,
+              spanGaps: false,
               pointHoverBorderWidth: 0,
               pointHoverBackgroundColor: "transparent",
               hitRadius: 0,
@@ -960,12 +1085,12 @@
             tpsChartInstance = new Chart(tpsChart.value, {
               type: "line",
               data: buildChartData(snaps, "tps"),
-              options: makeOptions(false),
+              options: makeOptions(tpsLogY.value),
             });
             ttftChartInstance = new Chart(ttftChart.value, {
               type: "line",
               data: buildChartData(snaps, "ttft"),
-              options: makeOptions(true),
+              options: makeOptions(ttftLogY.value),
             });
           }
 
@@ -974,14 +1099,12 @@
               filteredSnapshots,
               selectedModels,
               selectedCapabilities,
-              minContext,
-              maxContext,
-              minParams,
-              maxParams,
               searchText,
               dateFrom,
               dateTo,
               timePreset,
+              tpsLogY,
+              ttftLogY,
             ],
             () => nextTick(renderCharts),
             { deep: true },
@@ -1004,6 +1127,11 @@
             } catch (e) {
               console.log("No benchmark data yet");
             }
+            setTimePreset("1");
+            now.value = Date.now();
+            setInterval(() => {
+              now.value = Date.now();
+            }, 30000);
           });
 
           return {
@@ -1011,26 +1139,31 @@
             capabilities,
             selectedModels,
             selectedCapabilities,
-            minContext,
-            maxContext,
-            minParams,
-            maxParams,
             searchText,
             dateFrom,
             dateTo,
             sortBy,
             sortDir,
-            advancedOpen,
             hoveredModel,
             filteredSnapshots,
             sortedLatest,
             totalLatestModels,
             allSelected,
+            windowStats,
+            statusCounts,
+            statusColor,
+            statusLabel,
+            trendArrow,
             toggleAll,
             colorFor,
             formatContext,
             timePreset,
             setTimePreset,
+            lastRunTime,
+            feedStale,
+            relativeTime,
+            tpsLogY,
+            ttftLogY,
             tpsChart,
             ttftChart,
           };

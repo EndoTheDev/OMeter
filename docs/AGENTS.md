@@ -22,7 +22,7 @@ Project documentation files and the GitHub Pages web dashboard. The dashboard is
 - Serve locally: `uv run python -m http.server 8080` in `docs/`.
 - The dashboard auto-fetches `data/benchmark-history.json` relative to itself.
 - Charts only render when ≥2 benchmark runs exist.
-- All filtering (capabilities, context, params, search) is client-side Vue computed properties.
+- All filtering (capabilities, search) is client-side Vue computed properties.
 
 ## Verification
 
