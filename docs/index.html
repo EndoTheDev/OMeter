@@ -20,7 +20,11 @@
         --heading: #cdd6f4;
         --hover: #313244;
         --accent: #89b4fa;
+        --healthy: #a6e3a1;
+        --jittery: #89b4fa;
         --degraded: #f9e2af;
+        --down: #f38ba8;
+        --nodata: #6c7086;
         --input-bg: #181825;
         --chip-active-bg: #89b4fa;
         --chip-active-border: #89b4fa;
@@ -42,7 +46,11 @@
           --heading: #4c4f69;
           --hover: #ccd0da;
           --accent: #1e66f5;
+          --healthy: #40a02b;
+          --jittery: #1e66f5;
           --degraded: #df8e1d;
+          --down: #d20f39;
+          --nodata: #6c6f85;
           --input-bg: #e6e9ef;
           --chip-active-bg: #1e66f5;
           --chip-active-border: #1e66f5;
@@ -74,7 +82,7 @@
   <body class="bg-[var(--bg)] text-[var(--text)] font-sans text-sm m-0">
     <div
       id="app"
-      class="flex flex-col h-screen">
+      class="flex flex-col min-h-screen md:h-screen">
       <header
         class="sticky top-0 z-10 bg-[var(--panel)] border-b border-[var(--border)] px-4 py-2 md:px-6 flex items-center gap-3 flex-wrap">
         <h1 class="text-lg leading-none text-[var(--heading)]">OMeter</h1>
@@ -115,7 +123,7 @@
       </header>
 
       <main
-        class="flex-1 p-4 pt-2 pb-0 min-w-0 min-h-0 flex flex-col overflow-hidden">
+        class="flex-1 p-4 pt-2 pb-0 min-w-0 min-h-0 flex flex-col md:overflow-hidden">
         <div
           v-if="filteredSnapshots.length === 0"
           class="text-center p-12 text-[var(--muted)]">
@@ -227,74 +235,79 @@
         <div
           v-if="filteredSnapshots.length > 0"
           class="flex-1 min-h-0 flex flex-col">
-          <div class="flex flex-wrap gap-2 mb-2 items-center">
-            <span
-              v-for="s in ['healthy','jittery','degraded','down','nodata']"
-              :key="s"
-              class="inline-flex items-center gap-1.5 text-[13px] py-0.5 px-2.5 rounded-full border border-[var(--border)] bg-[var(--input-bg)]"
-              :style="{color: statusColor[s]}">
+          <div
+            class="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2 mb-2">
+            <div class="flex flex-wrap gap-2 items-center">
               <span
-                class="inline-block w-2 h-2 rounded-full"
-                :style="{background: statusColor[s]}"></span>
-              {{ statusLabel[s] }} · {{ statusCounts[s] }}
-            </span>
-            <label
-              v-for="c in capabilities"
-              :key="c"
-              class="flex items-center gap-1 text-[13px] cursor-pointer py-1 px-[5px] rounded-xl border border-[var(--border)] bg-[var(--input-bg)]"
-              :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': selectedCapabilities.includes(c)}">
-              <input
-                type="checkbox"
-                :value="c"
-                v-model="selectedCapabilities"
-                class="hidden" />{{ c }}
-            </label>
-            <div class="relative ml-auto">
-              <input
-                type="text"
-                v-model="searchText"
-                :placeholder="'Filter ' + totalLatestModels + ' models'"
-                class="py-1 pl-2.5 pr-7 text-[13px] rounded-md bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] w-40 md:w-48" />
-              <svg
-                v-if="!searchText"
-                class="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)] pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24">
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"></circle>
-                <line
-                  x1="21"
-                  y1="21"
-                  x2="16.65"
-                  y2="16.65"></line>
-              </svg>
-              <button
-                v-else
-                @click="searchText = ''"
-                class="absolute right-2 top-1/2 -translate-y-1/2 p-0 border-none bg-transparent cursor-pointer text-[var(--muted)] hover:text-[var(--text)]"
-                aria-label="Clear search">
+                v-for="s in ['healthy','jittery','degraded','down','nodata']"
+                :key="s"
+                class="inline-flex items-center gap-1.5 text-[13px] py-0.5 px-2.5 rounded-full border border-[var(--border)] bg-[var(--input-bg)]"
+                :style="{color: statusColor[s]}">
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  :style="{background: statusColor[s]}"></span>
+                {{ statusLabel[s] }} · {{ statusCounts[s] }}
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center md:ml-auto">
+              <label
+                v-for="c in capabilities"
+                :key="c"
+                class="flex items-center gap-1 text-[13px] cursor-pointer py-1 px-[5px] rounded-xl border border-[var(--border)] bg-[var(--input-bg)]"
+                :class="{'bg-[var(--chip-active-bg)] border-[var(--chip-active-border)] text-[var(--chip-active-text)]': selectedCapabilities.includes(c)}">
+                <input
+                  type="checkbox"
+                  :value="c"
+                  v-model="selectedCapabilities"
+                  class="hidden" />{{ c }}
+              </label>
+              <div class="relative">
+                <input
+                  type="text"
+                  v-model="searchText"
+                  :placeholder="'Filter ' + totalLatestModels + ' models'"
+                  class="py-1 pl-2.5 pr-7 text-[13px] rounded-md bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] w-40 md:w-48" />
                 <svg
-                  class="w-3.5 h-3.5"
+                  v-if="!searchText"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--muted)] pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   viewBox="0 0 24 24">
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="7"></circle>
                   <line
-                    x1="18"
-                    y1="6"
-                    x2="6"
-                    y2="18"></line>
-                  <line
-                    x1="6"
-                    y1="6"
-                    x2="18"
-                    y2="18"></line>
+                    x1="21"
+                    y1="21"
+                    x2="16.65"
+                    y2="16.65"></line>
                 </svg>
-              </button>
+                <button
+                  v-else
+                  @click="searchText = ''"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-0 border-none bg-transparent cursor-pointer text-[var(--muted)] hover:text-[var(--text)]"
+                  aria-label="Clear search">
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <line
+                      x1="18"
+                      y1="6"
+                      x2="6"
+                      y2="18"></line>
+                    <line
+                      x1="6"
+                      y1="6"
+                      x2="18"
+                      y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <div
@@ -700,11 +713,11 @@
           });
 
           const statusColor = {
-            healthy: "#a6e3a1",
-            jittery: "#89b4fa",
-            degraded: "#f9e2af",
-            down: "#f38ba8",
-            nodata: "#6c7086",
+            healthy: getCssColor("--healthy"),
+            jittery: getCssColor("--jittery"),
+            degraded: getCssColor("--degraded"),
+            down: getCssColor("--down"),
+            nodata: getCssColor("--nodata"),
           };
           const statusLabel = {
             healthy: "Healthy",
