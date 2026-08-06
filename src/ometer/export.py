@@ -102,6 +102,13 @@ def format_csv(
     return buf.getvalue()
 
 
+def _write_or_print(content: str, path: str | None) -> None:
+    if path:
+        Path(path).write_text(content, encoding="utf-8")
+    else:
+        print(content)
+
+
 def export_results(
     rows: list[ExportRow],
     fmt: str,
@@ -115,11 +122,7 @@ def export_results(
         content = format_json(rows, num_runs, show_ttft, show_tps, verbose)
     else:
         content = format_csv(rows, num_runs, show_ttft, show_tps, verbose)
-
-    if path:
-        Path(path).write_text(content, encoding="utf-8")
-    else:
-        print(content)
+    _write_or_print(content, path)
 
 
 def format_history_json(history_rows: list[dict], verbose: bool) -> str:
@@ -193,8 +196,4 @@ def export_history(
         content = format_history_json(history_rows, verbose)
     else:
         content = format_history_csv(history_rows, verbose)
-
-    if path:
-        Path(path).write_text(content, encoding="utf-8")
-    else:
-        print(content)
+    _write_or_print(content, path)

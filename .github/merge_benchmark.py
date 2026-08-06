@@ -22,7 +22,7 @@ with open(latest_path) as f:
 try:
     with open(history_path) as f:
         history = json.load(f)
-except FileNotFoundError, json.JSONDecodeError:
+except (FileNotFoundError, json.JSONDecodeError):
     history = {"runs": []}
 
 history["runs"].append(
