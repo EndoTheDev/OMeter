@@ -47,8 +47,10 @@ class MainOptions:
 async def main(config: Config, options: MainOptions) -> None:
     if options.show_history:
         conn = get_connection()
-        rows = get_latest_per_model(conn)
-        conn.close()
+        try:
+            rows = get_latest_per_model(conn)
+        finally:
+            conn.close()
         if options.target_models:
             rows = [
                 r
@@ -187,25 +189,27 @@ async def main(config: Config, options: MainOptions) -> None:
 
         if all_exports and (options.show_ttft or options.show_tps):
             conn = get_connection()
-            for export in all_exports:
-                run_data = build_run_data(
-                    model_name=export.model,
-                    model_size=export.size,
-                    context_length=(
-                        int(export.context) if export.context.isdigit() else 0
-                    ),
-                    quantization=export.quant,
-                    capabilities=export.capabilities,
-                    ttft=export.ttft,
-                    tps=export.tps,
-                    error=export.error,
-                    mode=export.mode,
-                    prompts=[r["prompt"] for r in export.runs],
-                    num_predict=options.num_predict,
-                    parallel=config.num_parallel,
-                )
-                save_run(conn, run_data)
-            conn.close()
+            try:
+                for export in all_exports:
+                    run_data = build_run_data(
+                        model_name=export.model,
+                        model_size=export.size,
+                        context_length=(
+                            int(export.context) if export.context.isdigit() else 0
+                        ),
+                        quantization=export.quant,
+                        capabilities=export.capabilities,
+                        ttft=export.ttft,
+                        tps=export.tps,
+                        error=export.error,
+                        mode=export.mode,
+                        prompts=[r["prompt"] for r in export.runs],
+                        num_predict=options.num_predict,
+                        parallel=config.num_parallel,
+                    )
+                    save_run(conn, run_data)
+            finally:
+                conn.close()
 
 
 def match_model(model_name: str, target: str) -> bool:
