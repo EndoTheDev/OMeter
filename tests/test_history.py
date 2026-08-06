@@ -13,6 +13,7 @@ from ometer.history import (
     build_run_data,
     get_db_path,
     get_latest_per_model,
+    get_model_history,
     get_previous_run,
     save_run,
     trend_arrow,
@@ -98,6 +99,24 @@ class TestSaveAndRetrieve:
         by_name = {r["model_name"]: r for r in latest}
         assert by_name["llama3"]["ttft"] == 0.5
         assert by_name["mistral"]["ttft"] == 1.0
+
+    def test_model_history(self, conn: sqlite3.Connection):
+        run1 = _make_run("llama3", timestamp="2025-01-01T00:00:00+00:00")
+        run2 = _make_run("llama3", ttft=0.5, timestamp="2025-06-01T00:00:00+00:00")
+        save_run(conn, run1)
+        save_run(conn, run2)
+        history = get_model_history(conn, "llama3")
+        assert len(history) == 2
+        assert history[0]["ttft"] == 0.5
+
+    def test_model_history_limit(self, conn: sqlite3.Connection):
+        for i in range(5):
+            r = _make_run(
+                "llama3", ttft=float(i), timestamp=f"2025-0{i+1}-01T00:00:00+00:00"
+            )
+            save_run(conn, r)
+        history = get_model_history(conn, "llama3", limit=3)
+        assert len(history) == 3
 
     def test_previous_run(self, conn: sqlite3.Connection):
         run1 = _make_run("llama3", timestamp="2025-01-01T00:00:00+00:00")
