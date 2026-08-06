@@ -58,6 +58,17 @@ class TestBuildParser:
         with pytest.raises(SystemExit):
             self._parse("--runs", "5")
 
+    def test_num_predict_negative_rejected(self):
+        import sys
+
+        old_argv = sys.argv
+        try:
+            sys.argv = ["ometer", "--num_predict", "-1"]
+            with pytest.raises(SystemExit):
+                main_entrypoint()
+        finally:
+            sys.argv = old_argv
+
     def test_local_flag(self):
         args = self._parse("--local")
         assert args.local is True

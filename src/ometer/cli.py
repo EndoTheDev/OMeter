@@ -346,6 +346,9 @@ def main_entrypoint() -> None:
     if args.reverse and not args.sort:
         parser.error("--reverse requires --sort")
 
+    if args.num_predict is not None and args.num_predict < 0:
+        parser.error("--num_predict must be >= 0")
+
     raw_prompt = args.prompts[0] if args.prompts else None
     if raw_prompt is not None:
         path = Path(raw_prompt)
