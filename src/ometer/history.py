@@ -104,6 +104,21 @@ def get_latest_per_model(
     return [_row_to_dict(r) for r in rows]
 
 
+def get_model_history(
+    conn: sqlite3.Connection, model_name: str, limit: int = 20
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT * FROM benchmark_runs
+        WHERE model_name = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """,
+        (model_name, limit),
+    ).fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
 def get_previous_run(
     conn: sqlite3.Connection, model_name: str
 ) -> dict[str, Any] | None:
