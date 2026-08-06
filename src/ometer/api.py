@@ -33,7 +33,7 @@ def sort_by_modified(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 async def fetch_tags(client: httpx.AsyncClient, base_url: str) -> list[dict[str, Any]]:
-    resp = await client.get(f"{base_url}/api/tags")
+    resp = await client.get(f"{base_url}/api/tags", timeout=30.0)
     resp.raise_for_status()
     data = resp.json()
     return data.get("models", [])
