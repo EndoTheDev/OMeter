@@ -636,8 +636,8 @@ def build_history_table(
                 str(r["context_length"] or ""),
                 r["quantization"] or "",
                 r["mode"] or "",
-                f'{r["ttft"]:.2f}' if r["ttft"] is not None else "n/a",
-                f'{r["tps"]:.2f}' if r["tps"] is not None else "n/a",
+                format_float_or_na(r["ttft"]),
+                format_float_or_na(r["tps"]),
                 r["error"] or "",
             )
     else:
@@ -666,8 +666,8 @@ def build_history_table(
                 r["model_name"],
                 r["timestamp"][:19].replace("T", " "),
                 num_runs,
-                f'{r["ttft"]:.2f}' if r["ttft"] is not None else "n/a",
-                f'{r["tps"]:.2f}' if r["tps"] is not None else "n/a",
+                format_float_or_na(r["ttft"]),
+                format_float_or_na(r["tps"]),
                 r["error"] or "",
             )
 
