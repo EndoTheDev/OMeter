@@ -53,7 +53,9 @@ def retry(
                     return await func(*args, **kwargs)
                 except Exception as e:
                     should_retry = False
-                    if isinstance(e, httpx.HTTPStatusError):
+                    if isinstance(e, httpx.TimeoutException):
+                        should_retry = False
+                    elif isinstance(e, httpx.HTTPStatusError):
                         if e.response.status_code in codes:
                             should_retry = True
                     elif isinstance(e, (httpx.RequestError, StreamEndedError)):
