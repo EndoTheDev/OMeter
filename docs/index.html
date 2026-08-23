@@ -558,8 +558,8 @@
             if (!last) return [];
             let items = (last.models || []).map((r) => r.model);
             if (searchText.value.trim()) {
-              const q = searchText.value.trim().toLowerCase();
-              items = items.filter((m) => m.toLowerCase().includes(q));
+              const queries = searchText.value.trim().toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+              items = items.filter((m) => queries.some((q) => m.toLowerCase().includes(q)));
             }
             if (selectedCapabilities.value.length > 0) {
               const capSet = selectedCapabilities.value;
@@ -611,8 +611,8 @@
             if (!last) return [];
             let items = last.models || [];
             if (searchText.value.trim()) {
-              const q = searchText.value.trim().toLowerCase();
-              items = items.filter((r) => r.model.toLowerCase().includes(q));
+              const queries = searchText.value.trim().toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+              items = items.filter((r) => queries.some((q) => r.model.toLowerCase().includes(q)));
             }
             if (selectedCapabilities.value.length > 0) {
               items = items.filter((r) =>
