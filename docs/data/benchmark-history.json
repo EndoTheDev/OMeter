@@ -319654,6 +319654,181 @@
           "tps": 278.3331869876095
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-25T18:24:00.765683+00:00",
+      "models": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "size": "763.2B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-09-10T03:00:00Z",
+          "ttft": 0.28560649599999977,
+          "tps": 188.9344277266726
+        },
+        {
+          "model": "glm-5.3",
+          "size": "753.3B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-08-28T08:00:00-07:00",
+          "ttft": 0.9320198590000004,
+          "tps": 100.04436002233165
+        },
+        {
+          "model": "glm-5.3-flash",
+          "size": "321.3B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-08-26T07:00:00-07:00",
+          "ttft": 0.3002208369999977,
+          "tps": 287.5333212340145
+        },
+        {
+          "model": "deepseek-v4-pro:0813",
+          "size": "1.7T",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-08-13T08:00:00-07:00",
+          "ttft": 0.4845359989999949,
+          "tps": 130.83025226560858
+        },
+        {
+          "model": "kimi-k3",
+          "size": "2.8T",
+          "context": "1048576",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-07-27T08:00:00-07:00",
+          "ttft": 0.8919635439999993,
+          "tps": 68.02263480273278
+        },
+        {
+          "model": "glm-5.2",
+          "size": "756.2B",
+          "context": "1048576",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-16T08:00:00-07:00",
+          "ttft": 1.0562347950000017,
+          "tps": 64.1030789612358
+        },
+        {
+          "model": "kimi-k2.7-code",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-12T00:00:00Z",
+          "ttft": 2.5947626560000003,
+          "tps": 78.52996841614736
+        },
+        {
+          "model": "nemotron-3-ultra",
+          "size": "550B",
+          "context": "262144",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-04T00:00:00Z",
+          "ttft": 0.5699609300000006,
+          "tps": 22.80886977793185
+        },
+        {
+          "model": "minimax-m3",
+          "size": "0",
+          "context": "512000",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-01T00:00:00Z",
+          "ttft": 0.9989826270000037,
+          "tps": 105.81804481376228
+        },
+        {
+          "model": "kimi-k2.6",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-04-20T00:00:00Z",
+          "ttft": 1.7870636910000002,
+          "tps": 10.333853889350072
+        },
+        {
+          "model": "gemma4:31b",
+          "size": "32.7B",
+          "context": "262144",
+          "quant": "BF16",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-04-02T09:00:00-08:00",
+          "ttft": 0.39591880999999773,
+          "tps": 239.2516789661026
+        },
+        {
+          "model": "minimax-m2.7",
+          "size": "229B",
+          "context": "196608",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-03-18T00:00:00Z",
+          "ttft": 0.811619750999995,
+          "tps": 48.245300303309264
+        },
+        {
+          "model": "nemotron-3-super",
+          "size": "120B",
+          "context": "262144",
+          "quant": "NVFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-03-11T00:00:00Z",
+          "ttft": 10.030227404000001,
+          "tps": 36.02725847088355
+        },
+        {
+          "model": "nemotron-3-nano:30b",
+          "size": "32B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-12-15T00:00:00Z",
+          "ttft": 0.2724146750000074,
+          "tps": 179.86759070688132
+        },
+        {
+          "model": "mistral-large-3:675b",
+          "size": "675B",
+          "context": "262144",
+          "quant": "FP8",
+          "capabilities": "completion, tools, vision",
+          "modified_at": "2025-12-02T00:00:00Z",
+          "ttft": 0.6775307289999972,
+          "tps": 75.97607771851528
+        },
+        {
+          "model": "gpt-oss:20b",
+          "size": "20.9B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 0.48562234099999557,
+          "tps": 90.4597360879272
+        },
+        {
+          "model": "gpt-oss:120b",
+          "size": "116.8B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 0.44625168999999687,
+          "tps": 289.62890041221755
+        }
+      ]
     }
   ]
 }
