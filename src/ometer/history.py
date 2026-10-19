@@ -127,7 +127,7 @@ def get_previous_run(
         SELECT * FROM benchmark_runs
         WHERE model_name = ?
         ORDER BY timestamp DESC
-        LIMIT 1 OFFSET 1
+        LIMIT 1
     """,
         (model_name,),
     ).fetchone()
