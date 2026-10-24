@@ -125,11 +125,32 @@ class TestSaveAndRetrieve:
         save_run(conn, run2)
         prev = get_previous_run(conn, "llama3")
         assert prev is not None
-        assert prev["ttft"] == 1.0
+        assert prev["ttft"] == 0.5
+        assert prev["timestamp"] == "2025-06-01T00:00:00+00:00"
+
+    def test_previous_run_single_stored_run(self, conn: sqlite3.Connection):
+        run = _make_run("llama3", ttft=0.5)
+        save_run(conn, run)
+        prev = get_previous_run(conn, "llama3")
+        assert prev is not None
+        assert prev["ttft"] == 0.5
+
+    def test_previous_run_most_recent_of_many(self, conn: sqlite3.Connection):
+        for i in range(3):
+            save_run(
+                conn,
+                _make_run(
+                    "llama3",
+                    ttft=float(i),
+                    timestamp=f"2025-0{i + 1}-01T00:00:00+00:00",
+                ),
+            )
+        prev = get_previous_run(conn, "llama3")
+        assert prev is not None
+        assert prev["ttft"] == 2.0
+        assert prev["timestamp"] == "2025-03-01T00:00:00+00:00"
 
     def test_previous_run_none(self, conn: sqlite3.Connection):
-        run = _make_run("llama3")
-        save_run(conn, run)
         prev = get_previous_run(conn, "llama3")
         assert prev is None
 
