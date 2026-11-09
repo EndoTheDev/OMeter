@@ -53,6 +53,10 @@ def _init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_benchmark_runs_model
         ON benchmark_runs(model_name)
     """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_benchmark_runs_model_mode_ts
+        ON benchmark_runs(model_name, mode, timestamp DESC)
+    """)
     conn.commit()
 
 
@@ -94,7 +98,7 @@ def get_latest_per_model(
                prompts, num_predict, parallel, id
         FROM (
             SELECT *, ROW_NUMBER() OVER (
-                PARTITION BY model_name ORDER BY timestamp DESC
+                PARTITION BY model_name, COALESCE(mode, '') ORDER BY timestamp DESC
             ) as rn
             FROM benchmark_runs
         )
@@ -120,18 +124,28 @@ def get_model_history(
 
 
 def get_previous_run(
-    conn: sqlite3.Connection, model_name: str
+    conn: sqlite3.Connection, model_name: str, mode: str | None = None
 ) -> dict[str, Any] | None:
-    row = conn.execute(
-        """
-        SELECT * FROM benchmark_runs
-        WHERE model_name = ?
-        ORDER BY timestamp DESC
-        LIMIT 1
-    """,
-        (model_name,),
-    ).fetchone()
+    query = "SELECT * FROM benchmark_runs WHERE model_name = ?"
+    params: list[Any] = [model_name]
+    if mode:
+        query += " AND COALESCE(mode, '') = ?"
+        params.append(mode)
+    query += " ORDER BY timestamp DESC LIMIT 1"
+    row = conn.execute(query, params).fetchone()
     return _row_to_dict(row) if row else None
+
+
+def get_all_runs(
+    conn: sqlite3.Connection, limit: int | None = None
+) -> list[dict[str, Any]]:
+    query = "SELECT * FROM benchmark_runs ORDER BY timestamp DESC"
+    params: tuple[int, ...] = ()
+    if limit is not None:
+        query += " LIMIT ?"
+        params = (limit,)
+    rows = conn.execute(query, params).fetchall()
+    return [_row_to_dict(r) for r in rows]
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

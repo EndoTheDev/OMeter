@@ -724,7 +724,7 @@ class TestMain:
         ]
         with (
             patch("ometer.cli.get_connection") as mock_conn,
-            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.get_all_runs", return_value=mock_rows),
             patch("ometer.cli.build_history_table") as mock_build,
             patch("ometer.cli.console") as mock_console,
         ):
@@ -809,7 +809,7 @@ class TestMain:
         mock_rows = [{"model_name": "llama3", "timestamp": "2025-01-01T00:00:00+00:00"}]
         with (
             patch("ometer.cli.get_connection") as mock_conn,
-            patch("ometer.cli.get_latest_per_model", return_value=mock_rows),
+            patch("ometer.cli.get_all_runs", return_value=mock_rows),
             patch("ometer.cli.export_history") as mock_export,
         ):
             options = MainOptions(show_history=True, export_fmt="json", verbose=True)

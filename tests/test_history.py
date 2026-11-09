@@ -11,6 +11,7 @@ from ometer.history import (
     IMPROVEMENT_THRESHOLD,
     _init_db,
     build_run_data,
+    get_all_runs,
     get_db_path,
     get_latest_per_model,
     get_model_history,
@@ -68,6 +69,13 @@ class TestInitDb:
         ).fetchone()
         assert result is not None
 
+    def test_creates_mode_index(self, conn: sqlite3.Connection):
+        result = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='idx_benchmark_runs_model_mode_ts'"
+        ).fetchone()
+        assert result is not None
+
     def test_idempotent(self, conn: sqlite3.Connection):
         _init_db(conn)
         _init_db(conn)
@@ -99,6 +107,21 @@ class TestSaveAndRetrieve:
         by_name = {r["model_name"]: r for r in latest}
         assert by_name["llama3"]["ttft"] == 0.5
         assert by_name["mistral"]["ttft"] == 1.0
+
+    def test_latest_per_model_keeps_local_and_cloud(self, conn: sqlite3.Connection):
+        local = _make_run(
+            "llama3", tps=10.0, timestamp="2025-01-01T00:00:00+00:00", mode="local"
+        )
+        cloud = _make_run(
+            "llama3", tps=20.0, timestamp="2025-06-01T00:00:00+00:00", mode="cloud"
+        )
+        save_run(conn, local)
+        save_run(conn, cloud)
+        latest = get_latest_per_model(conn)
+        assert len(latest) == 2
+        by_mode = {r["mode"]: r for r in latest}
+        assert by_mode["local"]["tps"] == 10.0
+        assert by_mode["cloud"]["tps"] == 20.0
 
     def test_model_history(self, conn: sqlite3.Connection):
         run1 = _make_run("llama3", timestamp="2025-01-01T00:00:00+00:00")
@@ -157,6 +180,62 @@ class TestSaveAndRetrieve:
     def test_previous_run_no_history(self, conn: sqlite3.Connection):
         prev = get_previous_run(conn, "nonexistent")
         assert prev is None
+
+    def test_previous_run_filters_by_mode(self, conn: sqlite3.Connection):
+        save_run(
+            conn,
+            _make_run(
+                "llama3", tps=10.0, timestamp="2025-01-01T00:00:00+00:00", mode="local"
+            ),
+        )
+        save_run(
+            conn,
+            _make_run(
+                "llama3", tps=15.0, timestamp="2025-03-01T00:00:00+00:00", mode="local"
+            ),
+        )
+        save_run(
+            conn,
+            _make_run(
+                "llama3", tps=20.0, timestamp="2025-06-01T00:00:00+00:00", mode="cloud"
+            ),
+        )
+        local = get_previous_run(conn, "llama3", "local")
+        cloud = get_previous_run(conn, "llama3", "cloud")
+        any_mode = get_previous_run(conn, "llama3")
+        assert local is not None and local["tps"] == 15.0
+        assert cloud is not None and cloud["tps"] == 20.0
+        assert any_mode is not None and any_mode["tps"] == 20.0
+
+    def test_previous_run_mode_without_matches(self, conn: sqlite3.Connection):
+        save_run(conn, _make_run("llama3", mode="cloud"))
+        assert get_previous_run(conn, "llama3", "local") is None
+
+    def test_all_runs(self, conn: sqlite3.Connection):
+        for i in range(3):
+            save_run(
+                conn,
+                _make_run(
+                    "llama3", ttft=float(i), timestamp=f"2025-0{i + 1}-01T00:00:00+00:00"
+                ),
+            )
+        runs = get_all_runs(conn)
+        assert len(runs) == 3
+        assert runs[0]["ttft"] == 2.0
+        assert runs[-1]["ttft"] == 0.0
+
+    def test_all_runs_respects_limit(self, conn: sqlite3.Connection):
+        for i in range(3):
+            save_run(
+                conn,
+                _make_run(
+                    "llama3", ttft=float(i), timestamp=f"2025-0{i + 1}-01T00:00:00+00:00"
+                ),
+            )
+        assert len(get_all_runs(conn, limit=2)) == 2
+
+    def test_all_runs_empty(self, conn: sqlite3.Connection):
+        assert get_all_runs(conn) == []
 
     def test_empty_latest(self, conn: sqlite3.Connection):
         assert get_latest_per_model(conn) == []
