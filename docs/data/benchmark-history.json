@@ -365990,6 +365990,252 @@
           "tps": 225.25646906678327
         }
       ]
+    },
+    {
+      "timestamp": "2026-11-13T07:42:54.283011+00:00",
+      "models": [
+        {
+          "model": "inkling-2-small",
+          "size": "594B",
+          "context": "1048576",
+          "quant": "NVFP4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-11-12T09:00:00-08:00",
+          "ttft": 0.7187969629999955,
+          "tps": 116.65834114971994
+        },
+        {
+          "model": "kimi-k3.1-pro",
+          "size": "2.8T",
+          "context": "1048576",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-11-04T08:00:00-08:00",
+          "ttft": 1.3673087049999992,
+          "tps": 48.651527492627
+        },
+        {
+          "model": "minimax-m3.1-flash",
+          "size": "428B",
+          "context": "1000000",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-10-19T09:00:00-07:00",
+          "ttft": 1.1529811830000014,
+          "tps": 87.15865060908303
+        },
+        {
+          "model": "deepseek-v4.1-flash:1017",
+          "size": "763.2B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-10-17T03:00:00-07:00",
+          "ttft": 0.4247705449999941,
+          "tps": 108.11154155712282
+        },
+        {
+          "model": "beam",
+          "size": "501B",
+          "context": "1048576",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-10-16T06:00:00-07:00",
+          "ttft": 0.5478387849999962,
+          "tps": 125.21148060639648
+        },
+        {
+          "model": "muse-spark-open",
+          "size": "822B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-10-15T09:00:00Z",
+          "ttft": 0.42396535400000346,
+          "tps": 194.53902196141775
+        },
+        {
+          "model": "mistral-large-4",
+          "size": "1.1T",
+          "context": "1048576",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-10-06T06:00:00-07:00",
+          "ttft": 1.075472996000002,
+          "tps": 124.21128774501346
+        },
+        {
+          "model": "clef:27b",
+          "size": "27.4B",
+          "context": "65536",
+          "quant": "BF16",
+          "capabilities": "decision, vision",
+          "modified_at": "2026-10-04T09:00:00-07:00",
+          "ttft": null,
+          "tps": null,
+          "error": "Client error '400 Bad Request' for url 'https://ollama.com/api/chat'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+        },
+        {
+          "model": "mimo-v2.6-flash",
+          "size": "309B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-09-22T09:00:00-07:00",
+          "ttft": 0.41806245600000125,
+          "tps": 235.83764032884804
+        },
+        {
+          "model": "mimo-v2.6-pro",
+          "size": "1.0T",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-09-22T09:00:00-07:00",
+          "ttft": 0.48595433599999893,
+          "tps": 208.19192077155108
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "size": "763.2B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-09-10T03:00:00Z",
+          "ttft": 0.5846508099999994,
+          "tps": 97.67781702349608
+        },
+        {
+          "model": "glm-5.3",
+          "size": "753.3B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-08-28T08:00:00-07:00",
+          "ttft": 0.2648814229999985,
+          "tps": 157.29712835984134
+        },
+        {
+          "model": "glm-5.3-flash",
+          "size": "321.3B",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-08-26T07:00:00-07:00",
+          "ttft": 0.26749735499999616,
+          "tps": 300.1726376887687
+        },
+        {
+          "model": "deepseek-v4-pro:0813",
+          "size": "1.7T",
+          "context": "1048576",
+          "quant": "FP8",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-08-13T08:00:00-07:00",
+          "ttft": 0.3676793819999986,
+          "tps": 165.62032843217776
+        },
+        {
+          "model": "kimi-k3",
+          "size": "2.8T",
+          "context": "1048576",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-07-27T08:00:00-07:00",
+          "ttft": 0.9703136669999992,
+          "tps": 86.4464552012738
+        },
+        {
+          "model": "glm-5.2",
+          "size": "756.2B",
+          "context": "1048576",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-16T08:00:00-07:00",
+          "ttft": 0.5793639589999984,
+          "tps": 215.9187194829618
+        },
+        {
+          "model": "kimi-k2.7-code",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-12T00:00:00Z",
+          "ttft": 0.6116279949999992,
+          "tps": 104.14813320988429
+        },
+        {
+          "model": "nemotron-3-ultra",
+          "size": "550B",
+          "context": "262144",
+          "quant": "",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-06-04T00:00:00Z",
+          "ttft": 0.9983965679999969,
+          "tps": 64.91492153892722
+        },
+        {
+          "model": "minimax-m3",
+          "size": "0",
+          "context": "512000",
+          "quant": "",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-06-01T00:00:00Z",
+          "ttft": 0.6898173279999966,
+          "tps": 48.91865025556404
+        },
+        {
+          "model": "kimi-k2.6",
+          "size": "1.0T",
+          "context": "262144",
+          "quant": "INT4",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-04-20T00:00:00Z",
+          "ttft": 0.6730650999999881,
+          "tps": 144.0030914963092
+        },
+        {
+          "model": "gemma4:31b",
+          "size": "32.7B",
+          "context": "262144",
+          "quant": "BF16",
+          "capabilities": "completion, thinking, tools, vision",
+          "modified_at": "2026-04-02T09:00:00-08:00",
+          "ttft": 0.31741208799999754,
+          "tps": 292.10421070540303
+        },
+        {
+          "model": "nemotron-3-super",
+          "size": "120B",
+          "context": "262144",
+          "quant": "NVFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2026-03-11T00:00:00Z",
+          "ttft": 0.3182769989999912,
+          "tps": 244.33303768334974
+        },
+        {
+          "model": "gpt-oss:120b",
+          "size": "116.8B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 0.3062027959999938,
+          "tps": 277.8274363668907
+        },
+        {
+          "model": "gpt-oss:20b",
+          "size": "20.9B",
+          "context": "131072",
+          "quant": "MXFP4",
+          "capabilities": "completion, thinking, tools",
+          "modified_at": "2025-08-05T00:00:00Z",
+          "ttft": 0.512431239999998,
+          "tps": 149.5946923421475
+        }
+      ]
     }
   ]
 }
