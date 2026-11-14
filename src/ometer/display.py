@@ -486,7 +486,7 @@ async def stream_table(
         show_results = await asyncio.gather(*show_tasks, return_exceptions=True)
 
     conn = get_connection()
-    previous_runs = [get_previous_run(conn, m["name"]) for m in models]
+    previous_runs = [get_previous_run(conn, m["name"], mode) for m in models]
     conn.close()
 
     pending: set[asyncio.Task[tuple[int, list[str], ExportRow, list[str]]]] = set()
@@ -647,23 +647,25 @@ def build_history_table(
             show_lines=True,
         )
         table.add_column("Model", style="cyan", no_wrap=True)
+        table.add_column("Mode", style="blue")
         table.add_column("Last Run", style="white")
         table.add_column("Runs", justify="right")
         table.add_column("TTFT", justify="right", style="blue")
         table.add_column("TPS", justify="right", style="bright_red")
         table.add_column("Error", style="red")
 
-        seen: dict[str, dict] = {}
+        seen: dict[tuple[str, str], dict] = {}
         for r in history_rows:
-            name = r["model_name"]
-            if name not in seen or r["timestamp"] > seen[name]["timestamp"]:
-                seen[name] = r
+            key = (r["model_name"], r.get("mode") or "")
+            if key not in seen or r["timestamp"] > seen[key]["timestamp"]:
+                seen[key] = r
 
         for r in sorted(seen.values(), key=lambda x: x["timestamp"], reverse=True):
             prompts = r.get("prompts", [])
             num_runs = str(len(prompts)) if prompts else "?"
             table.add_row(
                 r["model_name"],
+                r.get("mode") or "",
                 r["timestamp"][:19].replace("T", " "),
                 num_runs,
                 format_float_or_na(r["ttft"]),

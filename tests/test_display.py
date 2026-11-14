@@ -1911,7 +1911,9 @@ class TestStreamTable:
                 return_value=bench_result,
             ),
             patch("ometer.display.get_connection"),
-            patch("ometer.display.get_previous_run", return_value=None),
+            patch(
+                "ometer.display.get_previous_run", return_value=None
+            ) as mock_previous_run,
         ):
             await stream_table(
                 client,
@@ -1924,6 +1926,9 @@ class TestStreamTable:
                 verbose=False,
                 mode="local",
             )
+
+        assert mock_previous_run.call_args.args[1] == "llama3"
+        assert mock_previous_run.call_args.args[2] == "local"
 
 
 class TestBuildHistoryTable:
@@ -1977,6 +1982,40 @@ class TestBuildHistoryTable:
         assert "mistral" in captured.err
         assert "2025-06-01" in captured.err  # latest for llama3
         assert "2025-01-01" not in captured.err  # older run hidden
+
+    def test_summary_view_keeps_both_modes(self, capsys):
+        rows = [
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-01T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "local",
+                "ttft": 0.5,
+                "tps": 10.0,
+                "error": None,
+                "prompts": ["hi"],
+            },
+            {
+                "model_name": "llama3",
+                "timestamp": "2025-06-02T00:00:00+00:00",
+                "model_size": "7B",
+                "context_length": 8192,
+                "quantization": "Q4_0",
+                "mode": "cloud",
+                "ttft": 0.4,
+                "tps": 20.0,
+                "error": None,
+                "prompts": ["hi"],
+            },
+        ]
+        build_history_table(rows, verbose=False)
+        captured = capsys.readouterr()
+        assert "local" in captured.err
+        assert "cloud" in captured.err
+        assert "10.00" in captured.err
+        assert "20.00" in captured.err
 
     def test_detailed_view(self, capsys):
         rows = [

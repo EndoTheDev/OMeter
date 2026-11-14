@@ -24,6 +24,7 @@ from ometer.export import ExportRow, export_results, export_history
 from ometer.history import (
     get_connection,
     get_latest_per_model,
+    get_all_runs,
     save_run,
     build_run_data,
 )
@@ -47,7 +48,7 @@ class MainOptions:
 async def main(config: Config, options: MainOptions) -> None:
     if options.show_history:
         conn = get_connection()
-        rows = get_latest_per_model(conn)
+        rows = get_all_runs(conn) if options.verbose else get_latest_per_model(conn)
         conn.close()
         if options.target_models:
             rows = [
